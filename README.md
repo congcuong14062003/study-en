@@ -106,6 +106,8 @@ pnpm start
 
 Hoặc dùng Dockerfile đi kèm và PostgreSQL được quản lý riêng. Cung cấp `DATABASE_URL`, `NEXTAUTH_URL` và `NEXTAUTH_SECRET` ở runtime; chạy `prisma migrate deploy` trước khi phục vụ người dùng. Thư mục `public/uploads` cần volume bền vững khi chạy một instance. Chuyển upload sang object storage trước khi chạy nhiều instance.
 
+Trên Vercel, cấu hình tối thiểu `DATABASE_URL`, `NEXTAUTH_SECRET`, `AI_PROVIDER=groq`, `GROQ_API_KEY` và `AI_MODEL=openai/gpt-oss-120b`. `NEXTAUTH_URL` có thể là domain production đầy đủ; nếu bị bỏ trống, build sẽ tự dùng `VERCEL_URL` của deployment. Không tạo biến Vercel với giá trị rỗng cho các secret bắt buộc.
+
 Chưa triển khai lên Internet. Stack Node.js/PostgreSQL trong yêu cầu hiện chạy cục bộ; không chuyển sang SQLite hay Vinext để phù hợp Cloudflare Sites. Muốn publish cần host Node.js/container và PostgreSQL có thể truy cập từ host đó.
 
 ## Phạm vi MVP và phần cần hoàn thiện trước khi mở thương mại
