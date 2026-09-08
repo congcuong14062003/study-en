@@ -1,0 +1,439 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  USER
+  PREMIUM
+  ADMIN
+}
+model User {
+  id String @id @default(cuid())
+  name String?
+  email String @unique
+  emailVerified DateTime?
+  image String?
+  passwordHash String?
+  role Role @default(USER)
+  banned Boolean @default(false)
+  sessionVersion Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile Profile?
+  accounts Account[]
+  sessions Session[]
+  passwordResets PasswordReset[]
+  enrollments CourseEnrollment[]
+  lessonProgress LessonProgress[]
+  vocabulary UserVocabulary[]
+  reviews VocabularyReview[]
+  quizAttempts QuizAttempt[]
+  achievements UserAchievement[]
+  studySessions StudySession[]
+  dailyGoals DailyGoal[]
+  notifications Notification[]
+  favorites Favorite[]
+  notes Note[]
+  subscription Subscription?
+  payments Payment[]
+  conversations AIConversation[]
+  learningPlan LearningPlan?
+  progress UserProgress?
+  writingSubmissions WritingSubmission[]
+}
+model Profile {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  username String? @unique
+  bio String @default("")
+  country String @default("VN")
+  level String @default("A1")
+  goal String @default("Giao tiếp")
+  dailyMinutes Int @default(20)
+  reminderTime String @default("20:00")
+  notificationsEnabled Boolean @default(true)
+  publicLeaderboard Boolean @default(false)
+  language String @default("vi")
+  onboardingComplete Boolean @default(false)
+  placementComplete Boolean @default(false)
+}
+model Account {
+  id String @id @default(cuid())
+  userId String
+  type String
+  provider String
+  providerAccountId String
+  refresh_token String? @db.Text
+  access_token String? @db.Text
+  expires_at Int?
+  token_type String?
+  scope String?
+  id_token String? @db.Text
+  session_state String?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@unique([provider,providerAccountId])
+}
+model Session {
+  id String @id @default(cuid())
+  sessionToken String @unique
+  userId String
+  expires DateTime
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model VerificationToken {
+  identifier String
+  token String @unique
+  expires DateTime
+  @@unique([identifier, token])
+}
+model PasswordReset {
+  id String @id @default(cuid())
+  userId String
+  tokenHash String @unique
+  expiresAt DateTime
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model Course {
+  id String @id @default(cuid())
+  title String
+  level String
+  category String
+  description String @db.Text
+  duration String
+  rating Float @default(0)
+  instructor String
+  outcomes String[]
+  color String @default("blue")
+  icon String @default("messages")
+  thumbnail String?
+  published Boolean @default(false)
+  premium Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lessons Lesson[]
+  enrollments CourseEnrollment[]
+}
+model CourseEnrollment {
+  id String @id @default(cuid())
+  userId String
+  courseId String
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  course Course @relation(fields:[courseId], references:[id], onDelete:Cascade)
+  @@unique([userId,courseId])
+}
+model Lesson {
+  id String @id @default(cuid())
+  courseId String
+  title String
+  description String @db.Text
+  order Int
+  vocabularyIds String[]
+  grammarId String?
+  listeningId String?
+  readingId String?
+  questionIds String[]
+  published Boolean @default(true)
+  course Course @relation(fields:[courseId], references:[id], onDelete:Cascade)
+  progress LessonProgress[]
+  quizzes Quiz[]
+  @@unique([courseId,order])
+}
+model LessonProgress {
+  id String @id @default(cuid())
+  userId String
+  lessonId String
+  step Int @default(0)
+  completed Boolean @default(false)
+  completedAt DateTime?
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  lesson Lesson @relation(fields:[lessonId], references:[id], onDelete:Cascade)
+  @@unique([userId,lessonId])
+}
+model Vocabulary {
+  id String @id @default(cuid())
+  word String @unique
+  ipa String
+  meaning String
+  definition String
+  partOfSpeech String
+  example String
+  translation String
+  category String
+  level String
+  audioUrl String?
+  synonyms String[]
+  antonyms String[]
+  collocations String[]
+  wordFamily String[]
+  users UserVocabulary[]
+  reviews VocabularyReview[]
+}
+model UserVocabulary {
+  id String @id @default(cuid())
+  userId String
+  vocabularyId String
+  repetitions Int @default(0)
+  interval Int @default(0)
+  ease Float @default(2.5)
+  dueAt DateTime @default(now())
+  lastReviewedAt DateTime?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  vocabulary Vocabulary @relation(fields:[vocabularyId], references:[id], onDelete:Cascade)
+  @@unique([userId,vocabularyId])
+  @@index([userId,dueAt])
+}
+model VocabularyReview {
+  id String @id @default(cuid())
+  userId String
+  vocabularyId String
+  rating String
+  reviewedAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  vocabulary Vocabulary @relation(fields:[vocabularyId], references:[id], onDelete:Cascade)
+  @@index([userId,reviewedAt])
+}
+model GrammarLesson {
+  id String @id @default(cuid())
+  title String
+  level String
+  description String @db.Text
+  structure String[]
+  examples String[]
+  notes String @db.Text
+  commonMistake String
+}
+model ListeningLesson {
+  id String @id @default(cuid())
+  title String
+  level String
+  topic String
+  duration Int
+  transcript String @db.Text
+  translation String @db.Text
+  audioUrl String?
+}
+model ReadingArticle {
+  id String @id @default(cuid())
+  title String
+  level String
+  category String
+  minutes Int
+  body String @db.Text
+  translation String @db.Text
+}
+model WritingExercise {
+  id String @id @default(cuid())
+  title String
+  type String
+  level String
+  prompt String @db.Text
+  minWords Int @default(50)
+  submissions WritingSubmission[]
+}
+model WritingSubmission {
+  id String @id @default(cuid())
+  userId String
+  exerciseId String
+  text String @db.Text
+  analysis Json?
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  exercise WritingExercise @relation(fields:[exerciseId], references:[id], onDelete:Cascade)
+}
+model SpeakingExercise {
+  id String @id @default(cuid())
+  title String
+  level String
+  text String
+  tip String
+}
+model Quiz {
+  id String @id @default(cuid())
+  title String
+  kind String @default("practice")
+  lessonId String?
+  questionIds String[]
+  lesson Lesson? @relation(fields:[lessonId], references:[id], onDelete:Cascade)
+  attempts QuizAttempt[]
+}
+model Question {
+  id String @id @default(cuid())
+  skill String
+  level String
+  prompt String @db.Text
+  options String[]
+  correctAnswer Int
+  explanation String @db.Text
+  passage String? @db.Text
+  audioText String? @db.Text
+  answers Answer[]
+}
+model QuizAttempt {
+  id String @id @default(cuid())
+  userId String
+  quizId String
+  score Int
+  total Int
+  xp Int @default(0)
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  quiz Quiz @relation(fields:[quizId], references:[id], onDelete:Cascade)
+  answers Answer[]
+  @@index([userId,createdAt])
+}
+model Answer {
+  id String @id @default(cuid())
+  attemptId String
+  questionId String
+  selected Int
+  correct Boolean
+  attempt QuizAttempt @relation(fields:[attemptId], references:[id], onDelete:Cascade)
+  question Question @relation(fields:[questionId], references:[id], onDelete:Restrict)
+  @@unique([attemptId,questionId])
+}
+model Achievement {
+  id String @id
+  title String
+  description String
+  icon String
+  users UserAchievement[]
+}
+model UserAchievement {
+  id String @id @default(cuid())
+  userId String
+  achievementId String
+  unlockedAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  achievement Achievement @relation(fields:[achievementId], references:[id], onDelete:Cascade)
+  @@unique([userId,achievementId])
+}
+model StudySession {
+  id String @id @default(cuid())
+  userId String
+  kind String
+  resourceId String
+  startedAt DateTime @default(now())
+  endedAt DateTime?
+  seconds Int @default(0)
+  xp Int @default(0)
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@index([userId,startedAt])
+}
+model DailyGoal {
+  id String @id @default(cuid())
+  userId String
+  date String
+  targetMinutes Int
+  seconds Int @default(0)
+  xp Int @default(0)
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@unique([userId,date])
+}
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  title String
+  body String
+  type String
+  href String @default("/dashboard")
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@index([userId,read])
+}
+model Favorite {
+  id String @id @default(cuid())
+  userId String
+  type String
+  resourceId String
+  title String
+  href String
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@unique([userId,type,resourceId])
+}
+model Note {
+  id String @id @default(cuid())
+  userId String
+  title String
+  content String @db.Text
+  tags String[]
+  resourceId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model Subscription {
+  id String @id @default(cuid())
+  userId String @unique
+  plan String @default("FREE")
+  status String @default("active")
+  providerId String? @unique
+  currentPeriodEnd DateTime?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model Payment {
+  id String @id @default(cuid())
+  userId String
+  providerId String @unique
+  amount Int
+  currency String @default("VND")
+  status String
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model AIConversation {
+  id String @id @default(cuid())
+  userId String
+  title String?
+  scenario String
+  difficulty String
+  correction String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  messages AIMessage[]
+  @@index([userId,updatedAt])
+}
+model AIMessage {
+  id String @id @default(cuid())
+  conversationId String
+  role String
+  content String @db.Text
+  metadata Json?
+  createdAt DateTime @default(now())
+  conversation AIConversation @relation(fields:[conversationId], references:[id], onDelete:Cascade)
+}
+model LearningPlan {
+  id String @id @default(cuid())
+  userId String @unique
+  level String
+  goal String
+  weeks Json
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model UserProgress {
+  id String @id @default(cuid())
+  userId String @unique
+  xp Int @default(0)
+  streak Int @default(0)
+  longestStreak Int @default(0)
+  lastStudyDate String?
+  studySeconds Int @default(0)
+  lessonsCompleted Int @default(0)
+  wordsLearned Int @default(0)
+  skillScores Json @default("{}")
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+model RateLimit {
+  key String @id
+  count Int @default(1)
+  expiresAt DateTime
+}

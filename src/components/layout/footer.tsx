@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { Brand } from "./brand";
+export function Footer() {
+    return <footer className="footer"><div className="container footer-grid"><div><Brand /><p>Mỗi ngày một chút.<br />Tự tin thêm một bước.</p><span className="muted">Được xây dựng cho người học Việt Nam.</span></div><div><h4>Khám phá</h4><Link href="/courses">Khóa học</Link><Link href="/study-plan">Lộ trình học</Link><Link href="/pricing">EnglishMaster Premium</Link><Link href="/blog">Góc học tập</Link></div><div><h4>Luyện tập</h4>{[["Từ vựng", "vocabulary"], ["Ngữ pháp", "grammar"], ["Luyện nghe", "listening"], ["Luyện nói", "speaking"]].map(([t, p]) => <Link key={p} href={`/${p}`}>{t}</Link>)}</div><div><h4>Cùng tiến bộ</h4><Link href="/reading">Luyện đọc</Link><Link href="/writing">Luyện viết</Link><Link href="/ai-tutor">AI Tutor</Link><Link href="/dictionary">Từ điển</Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} EnglishMaster. Learn a little. Grow a lot.</span><span>Tiếng Việt · Việt Nam</span></div></footer>;
+}
