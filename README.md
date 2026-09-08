@@ -42,7 +42,8 @@ Nếu đã có PostgreSQL, điền `DATABASE_URL` trong `.env`, bỏ qua `db:loc
 - Dashboard, đăng ký khóa học, bài học 6 phần, lưu từng bước, nộp quiz và giải thích đáp án.
 - Từ vựng, phát âm, từ điển nội bộ, flashcard lật bằng click/Space, phím 1–4 và lịch ôn SM-2 điều chỉnh.
 - Ngữ pháp, nghe bằng TTS hoặc URL bản thu, đọc có tra từ, ghi âm/nhận dạng lời nói, viết và lưu bản nháp.
-- AI Tutor theo tình huống, giọng nói để nhập tin, lịch sử hội thoại, đánh giá bài viết theo JSON schema khi có API key.
+- AI Tutor theo tình huống và CEFR, nhập bằng giọng nói, sửa lỗi có giải thích tiếng Việt, cụm từ gợi ý, lịch sử/xóa hội thoại và hạn mức theo gói.
+- AI Writing chấm 5 tiêu chí, lưu lịch sử phản hồi và bản viết lại; AI Learning Recommendation phân tích quiz, điểm kỹ năng, tiến độ và lịch ôn.
 - XP, streak theo múi giờ Việt Nam, huy hiệu, bảng xếp hạng tự nguyện, lịch học, heatmap, thống kê và gợi ý theo điểm kỹ năng.
 - Yêu thích, ghi chú CRUD, hồ sơ/cài đặt, dark/light/system, nhắc học trong ứng dụng khi mở dashboard sau giờ đã chọn.
 - Admin RBAC, tìm kiếm/lọc bảng, CRUD khóa học/bài học/từ vựng/ngữ pháp/bài nghe/bài đọc/câu hỏi, xuất bản/bản nháp, khóa/xóa học viên, cấp/thu hồi Premium thủ công.
@@ -65,7 +66,7 @@ tests/                    Các bất biến của thuật toán và nội dung
 docs/ARCHITECTURE.md       Kiến trúc, routes, components và thiết kế dữ liệu
 ```
 
-Các API chính: `/api/auth/register`, `/api/courses`, `/api/courses/:id/enroll`, `/api/lessons/:id`, `/api/lessons/:id/progress`, `/api/quiz/:id`, `/api/quiz/submit`, `/api/vocabulary`, `/api/vocabulary/review`, `/api/dashboard`, `/api/notes`, `/api/favorites`, `/api/ai/chat`, `/api/writing/analyze`, `/api/speaking/analyze`, `/api/admin/:module`.
+Các API chính: `/api/auth/register`, `/api/courses`, `/api/courses/:id/enroll`, `/api/lessons/:id`, `/api/lessons/:id/progress`, `/api/quiz/:id`, `/api/quiz/submit`, `/api/vocabulary`, `/api/vocabulary/review`, `/api/dashboard`, `/api/notes`, `/api/favorites`, `/api/ai/status`, `/api/ai/chat`, `/api/ai/recommendation`, `/api/writing/analyze`, `/api/writing/submissions`, `/api/speaking/analyze`, `/api/admin/:module`.
 
 Mutation dùng JSON và kiểm tra `Origin`; upload dùng multipart. API riêng của NextAuth sử dụng CSRF token của NextAuth. Đáp án quiz không được gửi trước khi nộp. Server kiểm tra enrollment và Premium hiện hành, tính điểm và ghi XP trong transaction khóa theo người dùng. Nộp đồng thời không cộng trùng XP; kết thúc phiên học lặp lại không cộng trùng thời gian; các khoảng thời gian chồng nhau được gộp.
 
@@ -80,7 +81,7 @@ pnpm build
 
 Kiểm thử tích hợp yêu cầu database đã seed và server đang chạy tại `NEXTAUTH_URL` (hoặc `TEST_BASE_URL`). Nó tạo tài khoản có email `@example.test`, kiểm tra API rồi xóa dữ liệu đó. Bao gồm đăng ký, đăng nhập, RBAC, CSRF, placement, enrollment, tiến độ, nộp quiz đồng thời, SRS, quyền sở hữu ghi chú, lưu yêu thích, thời gian học, đăng nhập lại, admin CRUD và thu hồi session.
 
-Kết quả xác minh ngày 07/09/2026 với Node 24: 9/9 kiểm thử logic đạt; bộ kiểm thử tích hợp đạt; build production Webpack và kiểm tra TypeScript đạt. HTTP smoke test cho health, trang chủ, đăng nhập, khóa học, bảng giá và blog đều trả 200. Migration PostgreSQL đã đồng bộ.
+Kết quả xác minh ngày 08/09/2026 với Node 24: 11/11 kiểm thử logic đạt, gồm hợp đồng Structured Outputs; bộ kiểm thử tích hợp đạt; build production Webpack và kiểm tra TypeScript đạt. Migration PostgreSQL đã đồng bộ.
 
 Chưa thực hiện kiểm thử tương tác bằng trình duyệt trong phiên xây dựng này. Micro, voice recognition, TTS, OAuth, email và AI cần được kiểm tra trên trình duyệt và tài khoản dịch vụ thực trước khi phát hành.
 
@@ -89,7 +90,8 @@ Chưa thực hiện kiểm thử tương tác bằng trình duyệt trong phiên
 Sao chép các khóa cần thiết từ `.env.example`; không đưa secret vào frontend hoặc Git.
 
 - **Google/Facebook:** client ID và secret. Callback: `/api/auth/callback/google` hoặc `/api/auth/callback/facebook`. Nút đăng nhập chỉ xuất hiện khi cấu hình đủ.
-- **AI:** `OPENAI_API_KEY`, tùy chọn `OPENAI_MODEL` (mặc định `gpt-4.1-mini`). Request chỉ chạy phía server, dùng Responses API với `store:false`; bài viết dùng structured output rồi kiểm tra lại bằng Zod. Chưa có key thì API trả 503 có giải thích. Có quota chống lạm dụng.
+- **AI:** mặc định dùng Groq Free. Điền `GROQ_API_KEY`, giữ `AI_PROVIDER=groq` và tùy chọn `AI_MODEL` (mặc định `openai/gpt-oss-120b`) trong `.env`, sau đó khởi động lại `pnpm dev`. Request chỉ chạy phía server qua Responses API; hội thoại, bài viết và gợi ý đều dùng JSON Schema strict rồi kiểm tra lại bằng Zod trước khi lưu. Có thể chuyển lại OpenAI bằng `AI_PROVIDER=openai`, `OPENAI_API_KEY` và `AI_MODEL=gpt-4.1-mini`.
+- Gói Free có 20 lượt chat, 5 lượt chấm Writing và 3 lượt tạo lộ trình trong cửa sổ 24 giờ. Premium không có hạn mức sản phẩm theo ngày; mọi gói vẫn có giới hạn ngắn hạn để ngăn gửi lặp ngoài ý muốn. Lịch sử được lưu trong PostgreSQL của dự án; nội dung gửi để phân tích được truyền tới nhà cung cấp AI đã cấu hình.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Token reset được băm SHA-256, hết hạn sau 30 phút, chỉ dùng một lần; đổi mật khẩu làm mất hiệu lực session cũ.
 - **Proxy:** chỉ bật `TRUST_PROXY=true` khi reverse proxy do bạn quản lý **ghi đè** `X-Real-IP`. Khi đó có thêm giới hạn theo IP ngoài giới hạn tài khoản và ngưỡng bảo vệ tổng. Môi trường công khai nên có rate limiting tại proxy.
 
@@ -117,4 +119,4 @@ Chưa triển khai lên Internet. Stack Node.js/PostgreSQL trong yêu cầu hi�
 - Nhắc học là thông báo trong ứng dụng, chưa có push/email chạy nền. Bài viết AI được lưu nhưng chưa có màn hình lịch sử bài viết riêng.
 - Các khóa và nội dung là bộ khởi đầu, chưa phải giáo trình đầy đủ mọi trình độ. Chưa kiểm thử tải, vận hành nhiều instance, email/OAuth/AI thật hoặc thanh toán.
 
-Tài liệu tham chiếu: [NextAuth](https://next-auth.js.org/configuration/options), [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Tài liệu tham chiếu: [NextAuth](https://next-auth.js.org/configuration/options), [Groq Responses API](https://console.groq.com/docs/responses-api), [Groq Structured Outputs](https://console.groq.com/docs/structured-outputs).

@@ -26,9 +26,9 @@ export function ReadingContent({ article }: {
     const [translated, setTranslated] = useState(false), [selected, setSelected] = useState<Word | null>(null);
     const wordMap = new Map((words || []).map(w => [w.word.toLowerCase(), w]));
     return <><Card className="section-card"><div className="flex-row justify-between mb-4"><span className="muted text-sm">Chạm từ được gạch chân để tra nghĩa và lưu lại.</span><Button variant="outline" size="sm" onClick={() => setTranslated(!translated)}>{translated ? "Bản tiếng Anh" : "Bản dịch"}</Button></div><article className="reading-body">{translated ? article.translation : article.body.split(/(\s+)/).map((token, i) => {
-        const word = wordMap.get(token.toLowerCase().replace(/[^a-z]/g, ""));
-        return word ? <button className="inline-word" key={i} onClick={() => setSelected(word)}>{token}</button> : <span key={i}>{token}</span>;
-    })}</article></Card><Dialog open={Boolean(selected)} onOpenChange={v => {
+            const word = wordMap.get(token.toLowerCase().replace(/[^a-z]/g, ""));
+            return word ? <button className="inline-word" key={i} onClick={() => setSelected(word)}>{token}</button> : <span key={i}>{token}</span>;
+        })}</article></Card><Dialog open={Boolean(selected)} onOpenChange={v => {
             if (!v)
                 setSelected(null);
         }}><DialogContent><DialogTitle>{selected?.word}</DialogTitle><DialogDescription>{selected?.ipa} · {selected?.partOfSpeech}</DialogDescription>{selected && <><h3>{selected.meaning}</h3><p className="mt-4">{selected.example}</p><div className="flex-row mt-4"><AudioButton text={selected.word} label="Nghe phát âm"/><FavoriteButton type="word" id={selected.id} title={selected.word} href={`/dictionary?q=${encodeURIComponent(selected.word)}`} label/><Button size="sm" onClick={async () => {

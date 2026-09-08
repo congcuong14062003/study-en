@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 async function main() {
     if (!existsSync(".env")) {
         const password = randomBytes(24).toString("hex");
-        writeFileSync(".env", `DATABASE_URL="postgresql://englishmaster:${password}@127.0.0.1:54329/englishmaster?schema=public"\nNEXTAUTH_URL="http://127.0.0.1:3000"\nNEXTAUTH_SECRET="${randomBytes(32).toString("hex")}"\nDEMO_PASSWORD="LearnEnglish!2026"\nOPENAI_API_KEY=""\nOPENAI_MODEL="gpt-4.1-mini"\n`, { flag: "wx" });
+        writeFileSync(".env", `DATABASE_URL="postgresql://englishmaster:${password}@127.0.0.1:54329/englishmaster?schema=public"\nNEXTAUTH_URL="http://127.0.0.1:3000"\nNEXTAUTH_SECRET="${randomBytes(32).toString("hex")}"\nDEMO_PASSWORD="LearnEnglish!2026"\nAI_PROVIDER="groq"\nGROQ_API_KEY=""\nAI_MODEL="openai/gpt-oss-120b"\n`, { flag: "wx" });
         process.env.DATABASE_URL = `postgresql://englishmaster:${password}@127.0.0.1:54329/englishmaster?schema=public`;
     }
     const url = new URL(process.env.DATABASE_URL!);

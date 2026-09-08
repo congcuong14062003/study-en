@@ -211,13 +211,27 @@ async function main() {
         assert.equal((await fresh.json("/api/notes"))[0].title, "Updated note");
         assert.equal((await fresh.json("/api/favorites")).length, 1);
         const config = await fresh.json("/api/config");
-        if (!config.ai)
+        const aiStatus = await fresh.json("/api/ai/status");
+        assert.equal(aiStatus.configured, config.ai);
+        assert.equal((await fresh.json("/api/writing/submissions")).length, 0);
+        if (!config.ai) {
             assert.equal((await fresh.request("/api/ai/chat", "POST", {
                 message: "Hello",
                 scenario: "Coffee Shop",
                 difficulty: "Beginner",
                 correction: "important",
             })).status, 503);
+            assert.equal((await fresh.json("/api/ai/status")).usage.chat.used, aiStatus.usage.chat.used);
+        }
+        const conversation = await db.aIConversation.create({ data: { userId, title: "Integration chat", scenario: "Coffee Shop", difficulty: "Beginner", correction: "important", messages: { create: { role: "assistant", content: "Welcome", metadata: { correction: null, vocabulary: [], followUp: "How are you?" } } } } });
+        const foreignConversation = await db.aIConversation.create({ data: { userId: foreignId, title: "Private foreign chat", scenario: "Airport", difficulty: "Beginner", correction: "none" } });
+        assert((await fresh.json("/api/ai")).some((item: {
+            id: string;
+        }) => item.id === conversation.id));
+        assert.equal((await fresh.json(`/api/ai/${conversation.id}`)).messages[0].metadata.followUp, "How are you?");
+        assert.equal((await learner.request(`/api/ai/${foreignConversation.id}`, "DELETE")).status, 404);
+        assert.equal((await learner.request(`/api/ai/${conversation.id}`, "DELETE")).status, 200);
+        assert.equal((await db.aIConversation.findUnique({ where: { id: conversation.id } })), null);
         if (process.env.DEMO_PASSWORD) {
             const admin = new BrowserSession();
             await admin.login("admin@englishmaster.vn", process.env.DEMO_PASSWORD);
@@ -249,7 +263,7 @@ async function main() {
             data: { sessionVersion: { increment: 1 } },
         });
         assert.equal((await fresh.request("/api/dashboard")).status, 401);
-        console.log("PASS: registration, auth, RBAC, CSRF, placement, enrollment, lesson progression, concurrent XP, SRS, notes ownership, favorites, study-time idempotency, re-login persistence, AI unavailable, admin CRUD, session revocation.");
+        console.log("PASS: registration, auth, RBAC, CSRF, placement, enrollment, lesson progression, concurrent XP, SRS, notes ownership, favorites, study-time idempotency, re-login persistence, AI status/history ownership, admin CRUD, session revocation.");
     }
     finally {
         for (const id of createdContent)

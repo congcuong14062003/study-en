@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { isAIConfigured } from "@/lib/ai-config";
 import { ApiError } from "@/lib/security";
 import { courseSchema } from "@/lib/validation";
 const str = z.string().min(1).max(12000);
@@ -27,7 +28,7 @@ export async function adminRead(section: string) {
         case "reports": return db.quizAttempt.findMany({ include: { user: { select: { name: true } }, quiz: { select: { title: true } } }, take: 100, orderBy: { createdAt: "desc" } });
         default: {
             const [users, active, premium, revenue, courses, lessons, complete, daily] = await Promise.all([db.user.count(), db.userProgress.count({ where: { lastStudyDate: { gte: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10) } } }), db.subscription.count({ where: { plan: "PREMIUM", status: "active" } }), db.payment.aggregate({ _sum: { amount: true }, where: { status: "paid" } }), db.course.count(), db.lesson.count(), db.lessonProgress.count({ where: { completed: true } }), db.dailyGoal.groupBy({ by: ["date"], _count: { userId: true }, _sum: { seconds: true }, orderBy: { date: "desc" }, take: 14 })]);
-            return { users, active, premium, revenue: revenue._sum.amount || 0, courses, lessons, complete, daily, aiConfigured: Boolean(process.env.OPENAI_API_KEY), emailConfigured: Boolean(process.env.SMTP_HOST), googleConfigured: Boolean(process.env.GOOGLE_CLIENT_ID) };
+            return { users, active, premium, revenue: revenue._sum.amount || 0, courses, lessons, complete, daily, aiConfigured: isAIConfigured(), emailConfigured: Boolean(process.env.SMTP_HOST), googleConfigured: Boolean(process.env.GOOGLE_CLIENT_ID) };
         }
     }
 }

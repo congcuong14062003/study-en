@@ -44,9 +44,9 @@ export function Dictionary() {
         return <ErrorState message={error || "Chưa tải được từ điển"} retry={refresh}/>;
     const results = data.filter(w => `${w.word} ${w.meaning}`.toLowerCase().includes(q.toLowerCase()));
     return <div className="content-narrow"><PageHeading title="Hiểu một từ. Dùng đúng cách." description="Từ điển Anh–Việt trong thư viện học tập của bạn."/><Card className="dictionary-search"><Search size={23}/><input className="input" value={q} onChange={e => {
-        setQ(e.target.value);
-        setSelected(null);
-    }} placeholder="Tra từ tiếng Anh hoặc nghĩa tiếng Việt…" aria-label="Tra từ điển" autoComplete="off"/></Card>{!selected && <><div className="search-results">{results.slice(0, 8).map(w => <button className="dictionary-result" key={w.id} onClick={() => select(w)}><div><strong>{w.word}</strong><span>{w.ipa}</span></div><span>{w.meaning}</span></button>)}</div>{!results.length && <p className="notice">Từ này chưa có trong thư viện nội bộ. Hãy thử từ khác.</p>}{history.length > 0 && <div className="mt-4"><p className="mb-4">Tìm kiếm gần đây trên thiết bị này</p><div className="tabs-row">{history.map(h => <button className="tab-button" key={h} onClick={() => {
+            setQ(e.target.value);
+            setSelected(null);
+        }} placeholder="Tra từ tiếng Anh hoặc nghĩa tiếng Việt…" aria-label="Tra từ điển" autoComplete="off"/></Card>{!selected && <><div className="search-results">{results.slice(0, 8).map(w => <button className="dictionary-result" key={w.id} onClick={() => select(w)}><div><strong>{w.word}</strong><span>{w.ipa}</span></div><span>{w.meaning}</span></button>)}</div>{!results.length && <p className="notice">Từ này chưa có trong thư viện nội bộ. Hãy thử từ khác.</p>}{history.length > 0 && <div className="mt-4"><p className="mb-4">Tìm kiếm gần đây trên thiết bị này</p><div className="tabs-row">{history.map(h => <button className="tab-button" key={h} onClick={() => {
                         const w = data.find(w => w.word === h);
                         if (w)
                             select(w);

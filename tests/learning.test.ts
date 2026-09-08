@@ -5,6 +5,7 @@ import { cefrForScore, studyDate, effectiveStreak } from "../src/services/learni
 import { registerSchema } from "../src/lib/validation";
 import * as content from "../prisma/content";
 import { uncoveredSeconds } from "../src/services/study-time";
+import { extractAIText, recommendationSchema, tutorReplySchema, writingSchema } from "../src/services/ai";
 describe("Spaced repetition", () => {
     const now = new Date("2026-09-07T10:00:00Z");
     it("relearning an old card resets repetitions and schedules ten minutes", () => {
@@ -64,5 +65,20 @@ describe("Seed curriculum integrity", () => {
             assert.equal(new Set(q.options).size, q.options.length);
             assert(q.explanation.trim());
         }
+    });
+});
+describe("AI response contracts", () => {
+    it("extracts completed Responses API text and rejects refusals", () => {
+        assert.equal(extractAIText({ status: "completed", output: [{ content: [{ type: "output_text", text: "{\"ok\":true}" }] }] }), "{\"ok\":true}");
+        assert.throws(() => extractAIText({ status: "completed", output: [{ content: [{ type: "refusal", refusal: "No" }] }] }), /không thể xử lý/);
+    });
+    it("validates structured tutor, writing, and recommendation payloads", () => {
+        assert(tutorReplySchema.safeParse({ reply: "Welcome!", correction: null, vocabulary: [], followUp: "What would you like?" }).success);
+        assert(writingSchema.safeParse({ score: 80, grammarScore: 80, vocabularyScore: 80, coherenceScore: 80, taskResponseScore: 80, naturalnessScore: 80, mistakes: [], suggestions: ["Use one more example."], improvedVersion: "A clearer paragraph." }).success);
+        assert(recommendationSchema.safeParse({ summary: "Tập trung luyện nghe.", focusSkill: "listening", reason: "Điểm nghe thấp nhất.", weeklyGoal: "Ba buổi trong tuần.", actions: [
+                { skill: "listening", title: "Nghe chủ động", reason: "Củng cố ý chính.", minutes: 15 },
+                { skill: "vocabulary", title: "Ôn cụm từ", reason: "Mở rộng vốn từ.", minutes: 10 },
+                { skill: "speaking", title: "Nhắc lại", reason: "Tăng phản xạ.", minutes: 10 },
+            ] }).success);
     });
 });

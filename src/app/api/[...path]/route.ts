@@ -1,13 +1,14 @@
 import { compareTranscript } from "@/services/speech";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { isAIConfigured } from "@/lib/ai-config";
 import { currentUser, requireUser, requireAdmin } from "@/lib/auth";
 import { ApiError, checkOrigin, errorResponse, readJson, rateLimit } from "@/lib/security";
 import { onboardingSchema, noteSchema, profileSchema } from "@/lib/validation";
 import { dashboardData } from "@/services/dashboard";
 import { lessonData, publicQuiz } from "@/services/content";
 import { lockUser, reviewVocabulary, submitQuiz, reward, studyDate } from "@/services/learning";
-import { chat, analyzeWriting } from "@/services/ai";
+import { chat, analyzeWriting, getAIStatus, recommendLearning } from "@/services/ai";
 import { adminRead, adminWrite } from "@/services/admin";
 import { finishStudy } from "@/services/study-time";
 type Context = {
@@ -27,7 +28,7 @@ export async function GET(request: Request, { params }: Context) {
                 data = { status: "ok", database: "postgresql" };
                 break;
             case "config":
-                data = { ai: Boolean(process.env.OPENAI_API_KEY), email: Boolean(process.env.SMTP_HOST), google: Boolean(process.env.GOOGLE_CLIENT_ID), facebook: Boolean(process.env.FACEBOOK_CLIENT_ID) };
+                data = { ai: isAIConfigured(), email: Boolean(process.env.SMTP_HOST), google: Boolean(process.env.GOOGLE_CLIENT_ID), facebook: Boolean(process.env.FACEBOOK_CLIENT_ID) };
                 break;
             case "courses": {
                 const user = await currentUser();
@@ -64,10 +65,13 @@ export async function GET(request: Request, { params }: Context) {
                 await requireUser();
                 data = id ? await db.readingArticle.findUnique({ where: { id } }) : await db.readingArticle.findMany();
                 break;
-            case "writing":
-                await requireUser();
-                data = await db.writingExercise.findMany();
+            case "writing": {
+                const user = await requireUser();
+                data = id === "submissions"
+                    ? await db.writingSubmission.findMany({ where: { userId: user.id }, include: { exercise: { select: { id: true, title: true, level: true } } }, orderBy: { createdAt: "desc" }, take: 20 })
+                    : await db.writingExercise.findMany();
                 break;
+            }
             case "speaking":
                 await requireUser();
                 data = await db.speakingExercise.findMany();
@@ -95,7 +99,10 @@ export async function GET(request: Request, { params }: Context) {
                 break;
             case "ai": {
                 const user = await requireUser();
-                data = id ? await db.aIConversation.findFirst({ where: { id, userId: user.id }, include: { messages: { orderBy: { createdAt: "asc" } } } }) : await db.aIConversation.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 30 });
+                if (id === "status")
+                    data = await getAIStatus(user.id);
+                else
+                    data = id ? await db.aIConversation.findFirst({ where: { id, userId: user.id }, include: { messages: { orderBy: { createdAt: "asc" } } } }) : await db.aIConversation.findMany({ where: { userId: user.id }, orderBy: { updatedAt: "desc" }, take: 30 });
                 break;
             }
             case "leaderboard": {
@@ -244,9 +251,18 @@ async function mutate(request: Request, { params }: Context) {
                 data = await db.notification.updateMany({ where: { userId: user.id, ...(id && id !== "read-all" ? { id } : {}) }, data: { read: true } });
                 break;
             case "ai":
-                if (id !== "chat")
+                if (request.method === "DELETE" && id && !action) {
+                    const removed = await db.aIConversation.deleteMany({ where: { id, userId: user.id } });
+                    if (!removed.count)
+                        throw new ApiError("Không tìm thấy hội thoại.", 404);
+                    data = { deleted: true };
+                }
+                else if (id === "chat")
+                    data = await chat(user.id, raw);
+                else if (id === "recommendation")
+                    data = await recommendLearning(user.id);
+                else
                     throw new ApiError("Hành động không hợp lệ.");
-                data = await chat(user.id, raw);
                 break;
             case "writing":
                 if (id !== "analyze")
