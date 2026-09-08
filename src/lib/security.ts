@@ -39,7 +39,22 @@ export function checkOrigin(request: Request) {
     catch {
         throw new ApiError("Yêu cầu không hợp lệ. Vui lòng tải lại trang.", 403);
     }
-    if (receivedUrl.origin === expectedUrl.origin)
+    const requestUrl = new URL(request.url);
+    const host = request.headers.get("host")?.trim();
+    const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
+    const protocol = forwardedProtocol === "http" || forwardedProtocol === "https"
+        ? forwardedProtocol
+        : requestUrl.protocol.slice(0, -1);
+    let receivedRequestOrigin = requestUrl.origin;
+    if (host) {
+        try {
+            receivedRequestOrigin = new URL(`${protocol}://${host}`).origin;
+        }
+        catch {
+            // Keep the framework-provided request URL as the fallback.
+        }
+    }
+    if (receivedUrl.origin === expectedUrl.origin || receivedUrl.origin === receivedRequestOrigin)
         return;
     const localHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
     const sameLocalServer = process.env.NODE_ENV !== "production"
