@@ -4,16 +4,14 @@ MVP học tiếng Anh cho người Việt, chạy bằng **Next.js 16, React 19,
 
 ## Chạy ngay trên máy hiện tại
 
-Yêu cầu Node.js 22.12+ hoặc 24, pnpm 11.
+Yêu cầu Node.js 22.13+ hoặc 24, pnpm 11 và PostgreSQL chạy thường trực ở `localhost:5432`.
 
 ```powershell
 pnpm install
-pnpm db:local
+Copy-Item .env.example .env
 ```
 
-Giữ terminal database đang chạy. Lần đầu, lệnh tự tạo `.env` với mật khẩu database và secret ngẫu nhiên. PostgreSQL chỉ nghe ở `127.0.0.1:54329`; dữ liệu được giữ trong `.local-db/`.
-
-Mở terminal thứ hai:
+Tạo database `englishmaster`, cập nhật mật khẩu trong `DATABASE_URL`, sau đó chạy:
 
 ```powershell
 pnpm db:generate
@@ -22,18 +20,16 @@ pnpm db:seed
 pnpm dev
 ```
 
-Mở **http://127.0.0.1:3000**. Dùng đúng origin này để khớp cấu hình chống CSRF. Nếu đổi cổng/hostname, cập nhật `NEXTAUTH_URL` rồi khởi động lại.
+Mở **http://localhost:3000**. Dùng đúng origin này để khớp cấu hình chống CSRF. Nếu đổi cổng/hostname, cập nhật `NEXTAUTH_URL` rồi khởi động lại.
 
 Tài khoản demo cục bộ:
 
-| Vai trò | Email | Mật khẩu mặc định trong chế độ local |
-|---|---|---|
-| Học viên | `demo@englishmaster.vn` | `LearnEnglish!2026` |
-| Quản trị | `admin@englishmaster.vn` | `LearnEnglish!2026` |
+| Vai trò  | Email                    | Mật khẩu mặc định trong chế độ local |
+| -------- | ------------------------ | ------------------------------------ |
+| Học viên | `demo@englishmaster.vn`  | `LearnEnglish!2026`                  |
+| Quản trị | `admin@englishmaster.vn` | `LearnEnglish!2026`                  |
 
-Mật khẩu seed lấy từ `DEMO_PASSWORD`. Không đưa tài khoản demo lên môi trường công khai. Seed không ghi đè mật khẩu tài khoản đã tồn tại. Các số liệu của tài khoản demo là lịch sử mẫu; tài khoản đăng ký mới bắt đầu từ 0.
-
-Nếu đã có PostgreSQL, điền `DATABASE_URL` trong `.env`, bỏ qua `db:local` và chạy migration/seed. `docker-compose.yml` cũng cung cấp PostgreSQL 17; đặt `POSTGRES_PASSWORD` trước khi chạy.
+Mật khẩu seed lấy từ `DEMO_PASSWORD`. Không đưa tài khoản demo lên môi trường công khai. Seed không ghi đè mật khẩu tài khoản đã tồn tại. Các số liệu của tài khoản demo là lịch sử mẫu; tài khoản đăng ký mới bắt đầu từ 0. Dịch vụ PostgreSQL trên Windows được cấu hình Automatic nên không cần mở thêm terminal database mỗi lần chạy dự án.
 
 ## Những luồng đã triển khai
 
@@ -49,7 +45,7 @@ Nếu đã có PostgreSQL, điền `DATABASE_URL` trong `.env`, bỏ qua `db:loc
 - Admin RBAC, tìm kiếm/lọc bảng, CRUD khóa học/bài học/từ vựng/ngữ pháp/bài nghe/bài đọc/câu hỏi, xuất bản/bản nháp, khóa/xóa học viên, cấp/thu hồi Premium thủ công.
 - Upload ảnh bìa PNG/JPEG/WebP, thư viện bài viết, bảng giá và lưu sự quan tâm Premium. Không tạo giao dịch thanh toán giả.
 
-Seed có **3 khóa học, 12 bài học, 36 từ vựng, 17 chủ điểm ngữ pháp, 5 bài nghe, 5 bài đọc và 60 câu hỏi**.
+Seed có **16 khóa học, 96 bài học, 1.000 mục từ, 72 chủ điểm ngữ pháp, 21 bài nghe, 21 bài đọc và 132 câu hỏi**.
 
 ## Cấu trúc và API
 
@@ -61,7 +57,7 @@ src/lib/                  Auth, Prisma, Zod, bảo vệ request
 src/services/             XP, quiz, SRS, thời gian học, phân quyền, AI, CMS
 src/types/                Kiểu session và Web Speech
 prisma/                   Schema, migration, nội dung và seed
-scripts/                  PostgreSQL local, kiểm thử tích hợp, tạo admin
+scripts/                  Kiểm thử tích hợp và tạo admin
 tests/                    Các bất biến của thuật toán và nội dung
 docs/ARCHITECTURE.md       Kiến trúc, routes, components và thiết kế dữ liệu
 ```

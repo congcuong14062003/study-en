@@ -2,25 +2,41 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import * as content from "./content";
+import { extraCourses, extraLessons, extraVocabulary } from "./expanded-content";
+import { moreVocabulary } from "./vocabulary-expansion";
+import { coreLexicon } from "./core-lexicon";
+import { expandedGrammar } from "./grammar-expansion";
+import { topicVocabulary } from "./topic-vocabulary";
+import { immersiveListening, immersiveReading } from "./immersive-content";
+import { buildLearningPathLessons } from "./path-content";
+import { c2Courses, c2Grammar, c2Lessons, c2Listening, c2Questions, c2Reading, c2Vocabulary } from "./c2-content";
 const db = new PrismaClient();
 async function main() {
-    for (const [index, item] of content.courses.entries()) {
+    const courses = [...content.courses, ...extraCourses, ...c2Courses];
+    const baseLessons = [...content.lessons, ...extraLessons, ...c2Lessons];
+    const lessons = [...baseLessons, ...buildLearningPathLessons(courses, baseLessons)];
+    const vocabulary = [...content.vocabulary, ...extraVocabulary, ...moreVocabulary, ...coreLexicon, ...topicVocabulary, ...c2Vocabulary];
+    const grammar = [...content.grammar, ...expandedGrammar, ...c2Grammar];
+    const listening = [...content.listening, ...immersiveListening, ...c2Listening];
+    const reading = [...content.reading, ...immersiveReading, ...c2Reading];
+    const questions = [...content.questions, ...c2Questions];
+    for (const [index, item] of courses.entries()) {
         const { lessons: _, ...course } = item;
         const titles = ["English Communication A1", "English Communication A2", "Business English B1"];
-        const data = { ...course, title: titles[index], color: ["blue", "purple", "orange"][index], icon: ["book", "messages", "briefcase"][index], published: true };
+        const data = { ...course, title: titles[index] || course.title, color: ["blue", "purple", "orange"][index] || course.color, icon: ["book", "messages", "briefcase"][index] || course.icon, published: true };
         await db.course.upsert({ where: { id: item.id }, create: data, update: data });
     }
-    for (const v of content.vocabulary)
+    for (const v of vocabulary)
         await db.vocabulary.upsert({ where: { id: v.id }, create: v, update: v });
-    for (const g of content.grammar)
+    for (const g of grammar)
         await db.grammarLesson.upsert({ where: { id: g.id }, create: g, update: g });
-    for (const l of content.listening)
+    for (const l of listening)
         await db.listeningLesson.upsert({ where: { id: l.id }, create: l, update: l });
-    for (const r of content.reading)
+    for (const r of reading)
         await db.readingArticle.upsert({ where: { id: r.id }, create: r, update: r });
-    for (const q of content.questions)
+    for (const q of questions)
         await db.question.upsert({ where: { id: q.id }, create: q, update: q });
-    for (const lesson of content.lessons) {
+    for (const lesson of lessons) {
         await db.lesson.upsert({ where: { id: lesson.id }, create: lesson, update: lesson });
         await db.quiz.upsert({ where: { id: `quiz-${lesson.id}` }, create: { id: `quiz-${lesson.id}`, title: lesson.title, lessonId: lesson.id, kind: "lesson", questionIds: lesson.questionIds }, update: { questionIds: lesson.questionIds } });
     }
@@ -64,7 +80,7 @@ async function main() {
             await db.notification.create({ data: { userId: demo.id, type: "reminder", title: "Một chút tiếng Anh cho hôm nay", body: "Dành 20 phút để giữ nhịp học và tiến gần hơn đến mục tiêu của bạn.", href: "/lessons/a2-1" } });
         }
     }
-    console.log("Seed complete: 3 courses, 12 lessons, 36 words, 17 grammar topics, 5 listening, 5 reading, 60 questions.");
+    console.log(`Seed complete: ${courses.length} courses, ${lessons.length} lessons, ${vocabulary.length} words, ${grammar.length} grammar topics, ${listening.length} listening, ${reading.length} reading, ${questions.length} questions.`);
 }
 main().catch(e => {
     console.error(e);

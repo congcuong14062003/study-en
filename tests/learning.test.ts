@@ -4,8 +4,18 @@ import { scheduleReview } from "../src/services/spaced-repetition";
 import { cefrForScore, studyDate, effectiveStreak } from "../src/services/learning";
 import { registerSchema } from "../src/lib/validation";
 import * as content from "../prisma/content";
+import { extraCourses, extraLessons, extraVocabulary } from "../prisma/expanded-content";
+import { moreVocabulary } from "../prisma/vocabulary-expansion";
+import { coreLexicon } from "../prisma/core-lexicon";
+import { expandedGrammar } from "../prisma/grammar-expansion";
+import { topicVocabulary } from "../prisma/topic-vocabulary";
+import { immersiveListening, immersiveReading } from "../prisma/immersive-content";
+import { buildLearningPathLessons } from "../prisma/path-content";
+import { c2Courses, c2Grammar, c2Lessons, c2Listening, c2Questions, c2Reading, c2Vocabulary } from "../prisma/c2-content";
 import { uncoveredSeconds } from "../src/services/study-time";
 import { extractAIText, recommendationSchema, tutorReplySchema, writingSchema } from "../src/services/ai";
+import { paginationMeta, readPagination } from "../src/lib/pagination";
+import { cmsSchemas } from "../src/services/admin";
 describe("Spaced repetition", () => {
     const now = new Date("2026-09-07T10:00:00Z");
     it("relearning an old card resets repetitions and schedules ten minutes", () => {
@@ -42,21 +52,87 @@ describe("Learning boundaries", () => {
         assert.equal(registerSchema.safeParse({ name: "Test", email: "test@example.com", password, confirmPassword: password }).success, false);
     });
 });
+describe("Pagination boundaries", () => {
+    it("normalizes invalid pages and caps the requested page size", () => {
+        assert.deepEqual(readPagination(new URLSearchParams("page=-2&pageSize=999"), 30, 100), { page: 1, pageSize: 100, skip: 0 });
+    });
+    it("reports the visible result range on the final page", () => {
+        assert.deepEqual(paginationMeta(45, 3, 20), { page: 3, pageSize: 20, total: 45, totalPages: 3, from: 41, to: 45 });
+        assert.deepEqual(paginationMeta(45, 4, 20), { page: 4, pageSize: 20, total: 45, totalPages: 3, from: 0, to: 0 });
+    });
+});
+describe("Admin content validation", () => {
+    it("allows vocabulary to omit IPA and rejects a blank English definition", () => {
+        const vocabulary = {
+            word: "adaptable",
+            meaning: "có khả năng thích nghi",
+            definition: "Able to adjust to new conditions.",
+            partOfSpeech: "adjective",
+            example: "An adaptable learner progresses quickly.",
+            translation: "Một người học linh hoạt tiến bộ nhanh.",
+            category: "Personal qualities",
+            level: "B2" as const,
+            synonyms: [],
+            antonyms: [],
+            collocations: [],
+            wordFamily: [],
+        };
+        assert.equal(cmsSchemas.vocabulary.parse(vocabulary).ipa, "");
+        assert.equal(cmsSchemas.vocabulary.parse({ ...vocabulary, ipa: "" }).ipa, "");
+
+        const missingDefinition = cmsSchemas.vocabulary.safeParse({
+            ...vocabulary,
+            definition: "   ",
+        });
+        assert.equal(missingDefinition.success, false);
+        if (!missingDefinition.success) {
+            assert.equal(missingDefinition.error.issues[0]?.message, "Vui lòng nhập định nghĩa tiếng Anh.");
+        }
+    });
+});
 describe("Seed curriculum integrity", () => {
     it("has requested minimum sizes and all lesson references resolve", () => {
-        assert(content.courses.length >= 3);
-        assert(content.vocabulary.length >= 30);
-        assert(content.grammar.length >= 10);
+        const courses = [...content.courses, ...extraCourses, ...c2Courses];
+        const vocabulary = [...content.vocabulary, ...extraVocabulary, ...moreVocabulary, ...coreLexicon, ...topicVocabulary, ...c2Vocabulary];
+        const grammar = [...content.grammar, ...expandedGrammar, ...c2Grammar];
+        const listening = [...content.listening, ...immersiveListening, ...c2Listening];
+        const reading = [...content.reading, ...immersiveReading, ...c2Reading];
+        const questions = [...content.questions, ...c2Questions];
+        const baseLessons = [...content.lessons, ...extraLessons, ...c2Lessons];
+        const lessons = [...baseLessons, ...buildLearningPathLessons(courses, baseLessons)];
+        assert.equal(courses.length, 16);
+        assert.equal(lessons.length, 96);
+        assert.equal(vocabulary.length, 1000);
+        assert.equal(grammar.length, 72);
+        assert.equal(listening.length, 21);
+        assert.equal(reading.length, 21);
+        assert.equal(c2Vocabulary.length, 300);
+        assert.equal(courses.filter(course => course.level === "C2").length, 3);
         assert(content.questions.length >= 50);
         assert(content.listening.length >= 5);
         assert(content.reading.length >= 5);
-        for (const lesson of content.lessons) {
-            assert(content.courses.some(c => c.id === lesson.courseId));
-            for (const id of lesson.questionIds)
-                assert(content.questions.some(q => q.id === id));
-            for (const id of lesson.vocabularyIds)
-                assert(content.vocabulary.some(q => q.id === id));
+        assert.equal(new Set(vocabulary.map(word => word.word.toLowerCase())).size, vocabulary.length);
+        assert.equal(new Set(listening.map(item => item.id)).size, listening.length);
+        assert.equal(new Set(reading.map(item => item.id)).size, reading.length);
+        assert.equal(new Set(grammar.map(topic => topic.id)).size, grammar.length);
+        assert.equal(new Set(grammar.map(topic => topic.title.toLowerCase())).size, grammar.length);
+        for (const topic of grammar) {
+            assert(topic.structure.length > 0);
+            assert(topic.examples.length > 0);
         }
+        for (const item of [...listening, ...reading]) {
+            assert(item.title.trim());
+            assert(item.translation.trim().length > 100);
+        }
+        for (const lesson of lessons) {
+            assert(courses.some(c => c.id === lesson.courseId));
+            for (const id of lesson.questionIds)
+                assert(questions.some(q => q.id === id));
+            for (const id of lesson.vocabularyIds)
+                assert(vocabulary.some(q => q.id === id));
+        }
+        for (const course of courses)
+            assert.equal(lessons.filter(lesson => lesson.courseId === course.id).length, 6);
     });
     it("every quiz answer indexes a unique nonempty option", () => {
         for (const q of content.questions) {

@@ -3,22 +3,48 @@ import { db } from "@/lib/db";
 import { isAIConfigured } from "@/lib/ai-config";
 import { ApiError } from "@/lib/security";
 import { courseSchema } from "@/lib/validation";
+import { paginationMeta, readPagination } from "@/lib/pagination";
+import type { Prisma } from "@prisma/client";
 const str = z.string().min(1).max(12000);
 const strings = z.array(z.string().max(500)).max(50);
 export const cmsSchemas = {
     courses: courseSchema,
-    vocabulary: z.object({ word: str, ipa: str, meaning: str, definition: str, partOfSpeech: str, example: str, translation: str, category: str, level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]), synonyms: strings, antonyms: strings, collocations: strings, wordFamily: strings, audioUrl: z.url().startsWith("https://").nullable().optional() }),
+    vocabulary: z.object({ word: str, ipa: z.string().max(200).optional().default(""), meaning: str, definition: z.string().trim().min(1, "Vui lòng nhập định nghĩa tiếng Anh.").max(12000), partOfSpeech: str, example: str, translation: str, category: str, level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]), synonyms: strings, antonyms: strings, collocations: strings, wordFamily: strings, audioUrl: z.url().startsWith("https://").nullable().optional() }),
     grammar: z.object({ title: str, level: str, description: str, structure: strings, examples: strings, notes: str, commonMistake: str }),
     listening: z.object({ title: str, level: str, topic: str, duration: z.number().int().min(1).max(120), transcript: str, translation: str, audioUrl: z.url().startsWith("https://").nullable().optional() }),
     reading: z.object({ title: str, level: str, category: str, minutes: z.number().int().min(1).max(120), body: str, translation: str }),
     questions: z.object({ skill: z.enum(["vocabulary", "grammar", "reading", "listening"]), level: str, prompt: str, options: z.array(z.string().min(1).max(1000)).min(2).max(6), correctAnswer: z.number().int().min(0), explanation: str, passage: z.string().nullable().optional(), audioText: z.string().nullable().optional() }).refine(v => v.correctAnswer < v.options.length, "Chỉ số đáp án phải nằm trong danh sách lựa chọn."),
     lessons: z.object({ courseId: str, title: str, description: str, order: z.number().int().min(1).max(500), vocabularyIds: strings, grammarId: z.string().nullable().optional(), listeningId: z.string().nullable().optional(), readingId: z.string().nullable().optional(), questionIds: strings, published: z.boolean() })
 };
-export async function adminRead(section: string) {
+export async function adminRead(section: string, searchParams = new URLSearchParams()) {
     switch (section) {
         case "users": return db.user.findMany({ select: { id: true, name: true, email: true, role: true, banned: true, createdAt: true, profile: { select: { level: true } }, subscription: { select: { plan: true } } }, orderBy: { createdAt: "desc" }, take: 200 });
-        case "courses": return db.course.findMany({ include: { _count: { select: { lessons: true, enrollments: true } } } });
-        case "vocabulary": return db.vocabulary.findMany({ orderBy: { word: "asc" } });
+        case "courses": {
+            if (searchParams.get("paginated") !== "1")
+                return db.course.findMany({ include: { _count: { select: { lessons: true, enrollments: true } } } });
+            const query = (searchParams.get("q") || "").trim().slice(0, 100);
+            const level = searchParams.get("level");
+            const where: Prisma.CourseWhereInput = { ...(level ? { level } : {}), ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { description: { contains: query, mode: "insensitive" } }, { category: { contains: query, mode: "insensitive" } }] } : {}) };
+            const { page, pageSize, skip } = readPagination(searchParams, 20, 100);
+            const [items, total] = await Promise.all([
+                db.course.findMany({ where, include: { _count: { select: { lessons: true, enrollments: true } } }, orderBy: { updatedAt: "desc" }, skip, take: pageSize }),
+                db.course.count({ where }),
+            ]);
+            return { items, pagination: paginationMeta(total, page, pageSize), facets: {} };
+        }
+        case "vocabulary": {
+            if (searchParams.get("paginated") !== "1")
+                return db.vocabulary.findMany({ orderBy: { word: "asc" } });
+            const query = (searchParams.get("q") || "").trim().slice(0, 100);
+            const level = searchParams.get("level");
+            const where: Prisma.VocabularyWhereInput = { ...(level ? { level } : {}), ...(query ? { OR: [{ word: { contains: query, mode: "insensitive" } }, { meaning: { contains: query, mode: "insensitive" } }, { definition: { contains: query, mode: "insensitive" } }] } : {}) };
+            const { page, pageSize, skip } = readPagination(searchParams, 20, 100);
+            const [items, total] = await Promise.all([
+                db.vocabulary.findMany({ where, orderBy: { word: "asc" }, skip, take: pageSize }),
+                db.vocabulary.count({ where }),
+            ]);
+            return { items, pagination: paginationMeta(total, page, pageSize), facets: {} };
+        }
         case "grammar": return db.grammarLesson.findMany();
         case "listening": return db.listeningLesson.findMany();
         case "reading": return db.readingArticle.findMany();

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Vocabulary, UserVocabulary } from "@prisma/client";
 import { ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Layers, RotateCcw, Sparkles, Volume2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,9 +13,18 @@ import { PageHeading } from "@/components/dashboard/dashboard";
 import { EmptyState, LoadingSkeleton, ErrorState } from "@/components/ui/states";
 import { AudioButton, speak } from "./audio-player";
 import { FavoriteButton } from "./favorite-button";
+import { MotionGrid, MotionItem } from "@/components/ui/motion";
+import { Pagination } from "@/components/ui/pagination";
+import type { PaginatedResponse } from "@/lib/pagination";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 export type Word = Vocabulary & {
     review?: UserVocabulary | null;
 };
+type VocabularyPageData = PaginatedResponse<Word, {
+    categories: string[];
+    totalWords: number;
+    learnedCount: number;
+}>;
 export function VocabularyCard({ word, onReview }: {
     word: Word;
     onReview?: () => void;
@@ -38,14 +47,42 @@ export function VocabularyCard({ word, onReview }: {
     return <Card className="vocabulary-card"><div className="flex-row justify-between"><Badge className="neutral">{word.level} · {word.category}</Badge><FavoriteButton type="word" id={word.id} title={word.word} href={`/dictionary?q=${encodeURIComponent(word.word)}`}/></div><div className="word-title"><h2>{word.word}</h2><AudioButton text={word.word}/></div><div className="word-ipa">{word.ipa} <span>{word.partOfSpeech}</span></div><h3>{word.meaning}</h3><div className="word-example"><p>“{word.example}”</p><span>{word.translation}</span></div><div className="word-actions"><Button variant="outline" size="sm" disabled={busy || Boolean(word.review && new Date(word.review.dueAt) > new Date())} onClick={() => review("easy")}><Check size={14}/> Đã biết</Button><Button variant="secondary" size="sm" disabled={busy || Boolean(word.review && new Date(word.review.dueAt) > new Date())} onClick={() => review("again")}><RotateCcw size={13}/> Cần ôn tập</Button></div>{word.review && <span className="field-help">Lần ôn tiếp theo: {new Date(word.review.dueAt).toLocaleDateString("vi-VN")}</span>}</Card>;
 }
 export function VocabularyPage() {
-    const { data, loading, error, refresh } = useData<Word[]>("/vocabulary");
     const [q, setQ] = useState(""), [category, setCategory] = useState("all"), [level, setLevel] = useState("all");
-    if (loading)
+    const [page, setPage] = useState(1), [pageSize, setPageSize] = useState(30);
+    const [pageQuery, setPageQuery] = useState("");
+    const debouncedQuery = useDebouncedValue(q, 300);
+    const requestPage = pageQuery === debouncedQuery ? page : 1;
+    const path = useMemo(() => {
+        const params = new URLSearchParams({ paginated: "1", page: String(requestPage), pageSize: String(pageSize) });
+        if (debouncedQuery.trim())
+            params.set("q", debouncedQuery.trim());
+        if (category !== "all")
+            params.set("category", category);
+        if (level !== "all")
+            params.set("level", level);
+        return `/vocabulary?${params}`;
+    }, [category, debouncedQuery, level, pageSize, requestPage]);
+    const { data, loading, error, refresh } = useData<VocabularyPageData>(path);
+    if (loading && !data)
         return <LoadingSkeleton />;
     if (error || !data)
         return <ErrorState message={error || "Không thể tải từ vựng"} retry={refresh}/>;
-    const words = data.filter(w => (category === "all" || w.category === category) && (level === "all" || w.level === level) && `${w.word} ${w.meaning}`.toLowerCase().includes(q.toLowerCase()));
-    return <><PageHeading title="Từng từ mới, thêm một kết nối." description="Học từ trong ngữ cảnh. Ôn đúng lúc. Nhớ lâu hơn."><Button asChild><Link href="/flashcards"><Layers size={16}/> Ôn flashcard</Link></Button></PageHeading><div className="vocabulary-banner"><span className="icon-box"><BookOpen size={28}/></span><div><h3>Xây dựng vốn từ của riêng bạn</h3><p>{data.length} từ trong thư viện · {data.filter(w => w.review).length} từ đã bắt đầu học</p></div><Button asChild variant="outline" size="sm"><Link href="/quiz?type=vocabulary">Thử sức với quiz <ArrowRight size={14}/></Link></Button></div><div className="toolbar"><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Tìm từ tiếng Anh hoặc nghĩa tiếng Việt…" aria-label="Tìm từ vựng"/><select value={category} onChange={e => setCategory(e.target.value)} aria-label="Chủ đề từ vựng"><option value="all">Mọi chủ đề</option>{[...new Set(data.map(w => w.category))].map(c => <option key={c}>{c}</option>)}</select><select value={level} onChange={e => setLevel(e.target.value)} aria-label="Trình độ từ vựng"><option value="all">Mọi trình độ</option>{["A1", "A2", "B1", "B2", "C1", "C2"].map(c => <option key={c}>{c}</option>)}</select></div>{words.length ? <div className="grid-3">{words.map(word => <VocabularyCard key={word.id} word={word} onReview={refresh}/>)}</div> : <EmptyState title="Chưa tìm thấy từ phù hợp" description="Thử một từ khóa hoặc chủ đề khác nhé." href="/vocabulary" action="Xem thư viện"/>}</>;
+    return <><PageHeading title="Từng từ mới, thêm một kết nối." description="Học từ trong ngữ cảnh. Ôn đúng lúc. Nhớ lâu hơn."><Button asChild><Link href="/flashcards"><Layers size={16}/> Ôn flashcard</Link></Button></PageHeading><div className="vocabulary-banner"><span className="icon-box"><BookOpen size={28}/></span><div><h3>Xây dựng vốn từ của riêng bạn</h3><p>{data.facets.totalWords} từ trong thư viện · {data.facets.learnedCount} từ đã bắt đầu học</p></div><Button asChild variant="outline" size="sm"><Link href="/quiz?type=vocabulary">Thử sức với quiz <ArrowRight size={14}/></Link></Button></div><div className="toolbar"><input className="input" value={q} onChange={e => {
+        setQ(e.target.value);
+    }} placeholder="Tìm từ tiếng Anh hoặc nghĩa tiếng Việt…" aria-label="Tìm từ vựng"/><select value={category} onChange={e => {
+        setCategory(e.target.value);
+        setPage(1);
+    }} aria-label="Chủ đề từ vựng"><option value="all">Mọi chủ đề</option>{data.facets.categories.map(value => <option key={value}>{value}</option>)}</select><select value={level} onChange={e => {
+        setLevel(e.target.value);
+        setPage(1);
+    }} aria-label="Trình độ từ vựng"><option value="all">Mọi trình độ</option>{["A1", "A2", "B1", "B2", "C1", "C2"].map(value => <option key={value}>{value}</option>)}</select></div>{data.items.length ? <><MotionGrid className="grid-3">{data.items.map(word => <MotionItem className="motion-card-shell" key={word.id}><VocabularyCard word={word} onReview={refresh}/></MotionItem>)}</MotionGrid><Pagination meta={data.pagination} pageSizes={[15, 30, 60]} onPageChange={value => {
+        setPage(value);
+        setPageQuery(debouncedQuery);
+    }} onPageSizeChange={value => {
+        setPageSize(value);
+        setPage(1);
+        setPageQuery(debouncedQuery);
+    }}/></> : <EmptyState title="Chưa tìm thấy từ phù hợp" description="Thử một từ khóa hoặc chủ đề khác nhé." href="/vocabulary" action="Xem thư viện"/>}</>;
 }
 type ReviewCard = UserVocabulary & {
     vocabulary: Vocabulary;

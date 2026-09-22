@@ -11,6 +11,8 @@ import { lockUser, reviewVocabulary, submitQuiz, reward, studyDate } from "@/ser
 import { chat, analyzeWriting, getAIStatus, recommendLearning } from "@/services/ai";
 import { adminRead, adminWrite } from "@/services/admin";
 import { finishStudy } from "@/services/study-time";
+import { paginationMeta, readPagination } from "@/lib/pagination";
+import type { Prisma } from "@prisma/client";
 type Context = {
     params: Promise<{
         path: string[];
@@ -32,14 +34,33 @@ export async function GET(request: Request, { params }: Context) {
                 break;
             case "courses": {
                 const user = await currentUser();
-                const courses = await db.course.findMany({ where: { published: true, ...(id ? { id } : {}), ...(url.searchParams.get("level") ? { level: url.searchParams.get("level")! } : {}) }, include: { lessons: { where: { published: true }, orderBy: { order: "asc" }, select: { id: true, title: true, description: true, order: true } }, _count: { select: { enrollments: true } } } });
+                const query = (url.searchParams.get("q") || "").trim().slice(0, 100);
+                const level = url.searchParams.get("level");
+                const category = url.searchParams.get("category");
+                const where: Prisma.CourseWhereInput = { published: true, ...(id ? { id } : {}), ...(level ? { level } : {}), ...(category ? { category } : {}), ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { description: { contains: query, mode: "insensitive" } }, { category: { contains: query, mode: "insensitive" } }] } : {}) };
+                const include = { lessons: { where: { published: true }, orderBy: { order: "asc" as const }, select: { id: true, title: true, description: true, order: true } }, _count: { select: { enrollments: true } } };
+                const courses = id ? await db.course.findMany({ where, include }) : [];
                 if (id) {
                     if (!courses[0])
                         throw new ApiError("Không tìm thấy khóa học.", 404);
-                    data = { ...courses[0], enrolled: user ? Boolean(await db.courseEnrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: id } } })) : false };
+                    const [enrollment, progress] = user ? await Promise.all([
+                        db.courseEnrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: id } } }),
+                        db.lessonProgress.findMany({ where: { userId: user.id, lesson: { courseId: id } }, select: { lessonId: true, step: true, completed: true } }),
+                    ]) : [null, []];
+                    data = { ...courses[0], enrolled: Boolean(enrollment), lessons: courses[0].lessons.map(lesson => ({ ...lesson, progress: progress.find(item => item.lessonId === lesson.id) || null })) };
+                }
+                else if (url.searchParams.get("paginated") === "1") {
+                    const { page, pageSize, skip } = readPagination(url.searchParams, 12, 60);
+                    const [items, total, categories, lessonCount] = await Promise.all([
+                        db.course.findMany({ where, include, orderBy: [{ level: "asc" }, { createdAt: "asc" }], skip, take: pageSize }),
+                        db.course.count({ where }),
+                        db.course.findMany({ where: { published: true }, distinct: ["category"], select: { category: true }, orderBy: { category: "asc" } }),
+                        db.lesson.count({ where: { published: true, course: where } }),
+                    ]);
+                    data = { items, pagination: paginationMeta(total, page, pageSize), facets: { categories: categories.map(item => item.category), lessonCount } };
                 }
                 else
-                    data = courses;
+                    data = await db.course.findMany({ where, include, orderBy: [{ level: "asc" }, { createdAt: "asc" }] });
                 break;
             }
             case "vocabulary": {
@@ -48,8 +69,25 @@ export async function GET(request: Request, { params }: Context) {
                     data = await db.userVocabulary.findMany({ where: { userId: user.id, dueAt: { lte: new Date() } }, include: { vocabulary: true }, orderBy: { dueAt: "asc" }, take: 50 });
                     break;
                 }
-                const words = await db.vocabulary.findMany({ where: id ? { id } : {}, orderBy: { word: "asc" } });
-                const learned = await db.userVocabulary.findMany({ where: { userId: user.id } });
+                const query = (url.searchParams.get("q") || "").trim().slice(0, 100);
+                const level = url.searchParams.get("level");
+                const category = url.searchParams.get("category");
+                const where: Prisma.VocabularyWhereInput = { ...(id ? { id } : {}), ...(level ? { level } : {}), ...(category ? { category } : {}), ...(query ? { OR: [{ word: { contains: query, mode: "insensitive" } }, { meaning: { contains: query, mode: "insensitive" } }, { definition: { contains: query, mode: "insensitive" } }] } : {}) };
+                if (!id && url.searchParams.get("paginated") === "1") {
+                    const { page, pageSize, skip } = readPagination(url.searchParams, 30, 100);
+                    const [words, total, categories, totalWords, learnedCount] = await Promise.all([
+                        db.vocabulary.findMany({ where, orderBy: { word: "asc" }, skip, take: pageSize }),
+                        db.vocabulary.count({ where }),
+                        db.vocabulary.findMany({ distinct: ["category"], select: { category: true }, orderBy: { category: "asc" } }),
+                        db.vocabulary.count(),
+                        db.userVocabulary.count({ where: { userId: user.id } }),
+                    ]);
+                    const learned = await db.userVocabulary.findMany({ where: { userId: user.id, vocabularyId: { in: words.map(word => word.id) } } });
+                    data = { items: words.map(word => ({ ...word, review: learned.find(item => item.vocabularyId === word.id) || null })), pagination: paginationMeta(total, page, pageSize), facets: { categories: categories.map(item => item.category), totalWords, learnedCount } };
+                    break;
+                }
+                const words = await db.vocabulary.findMany({ where, orderBy: { word: "asc" } });
+                const learned = await db.userVocabulary.findMany({ where: { userId: user.id, ...(id ? { vocabularyId: id } : {}) } });
                 data = words.map(w => ({ ...w, review: learned.find(v => v.vocabularyId === w.id) || null }));
                 break;
             }
@@ -126,7 +164,7 @@ export async function GET(request: Request, { params }: Context) {
             }
             case "admin":
                 await requireAdmin();
-                data = await adminRead(id || "dashboard");
+                data = await adminRead(id || "dashboard", url.searchParams);
                 break;
             default: throw new ApiError("API không tồn tại.", 404);
         }

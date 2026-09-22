@@ -2,20 +2,21 @@ import type { NextConfig } from "next";
 
 function absoluteOrigin(value: string | undefined) {
   const trimmed = value?.trim();
-  if (!trimmed)
-    return null;
+  if (!trimmed) return null;
   try {
-    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const url = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
     return url.origin;
-  }
-  catch {
+  } catch {
     return null;
   }
 }
 
-const nextAuthUrl = absoluteOrigin(process.env.NEXTAUTH_URL)
-  || absoluteOrigin(process.env.VERCEL_URL)
-  || "http://127.0.0.1:3000";
+const nextAuthUrl =
+  absoluteOrigin(process.env.NEXTAUTH_URL) ||
+  absoluteOrigin(process.env.VERCEL_URL) ||
+  "http://localhost:3000";
 
 // next-auth/react treats an empty NEXTAUTH_URL as a real value and passes it to
 // new URL(). Normalize it before Next.js imports application modules to prerender.
@@ -28,12 +29,20 @@ const config: NextConfig = {
     NEXTAUTH_URL: nextAuthUrl,
   },
   async headers() {
-    return [{ source: "/(.*)", headers: [
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "X-Frame-Options", value: "DENY" },
-      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), geolocation=(), microphone=(self)" }
-    ] }];
-  }
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), geolocation=(), microphone=(self)",
+          },
+        ],
+      },
+    ];
+  },
 };
 export default config;
