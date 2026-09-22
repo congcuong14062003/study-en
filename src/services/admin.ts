@@ -120,7 +120,18 @@ export async function adminWrite(section: string, id: string | undefined, raw: u
         }
         case "vocabulary": {
             const data = cmsSchemas.vocabulary.parse(raw);
-            return id ? db.vocabulary.update({ where: { id }, data }) : db.vocabulary.create({ data });
+            const word = data.word.trim();
+            const existing = await db.vocabulary.findFirst({
+                where: {
+                    word: { equals: word, mode: "insensitive" },
+                    ...(id ? { id: { not: id } } : {}),
+                },
+                select: { word: true },
+            });
+            if (existing)
+                throw new ApiError(`Từ vựng “${existing.word}” đã tồn tại.`, 409);
+            const vocabulary = { ...data, word };
+            return id ? db.vocabulary.update({ where: { id }, data: vocabulary }) : db.vocabulary.create({ data: vocabulary });
         }
         case "grammar": {
             const data = cmsSchemas.grammar.parse(raw);
