@@ -14,8 +14,11 @@ import { onboardingSchema, noteSchema, profileSchema } from "@/lib/validation";
 import { dashboardData } from "@/services/dashboard";
 import { lessonData, publicQuiz } from "@/services/content";
 import {
+  addStarterFlashcards,
   lockUser,
+  removeVocabulary,
   reviewVocabulary,
+  startVocabulary,
   submitQuiz,
   reward,
   studyDate,
@@ -145,7 +148,7 @@ export async function GET(request: Request, { params }: Context) {
         break;
       }
       case "vocabulary": {
-        console.log("vào");
+        console.log("vào api list từ vựng");
         const user = await requireUser();
         if (action === "reviews" || id === "reviews") {
           data = await db.userVocabulary.findMany({
@@ -159,10 +162,12 @@ export async function GET(request: Request, { params }: Context) {
         const query = (url.searchParams.get("q") || "").trim().slice(0, 100);
         const level = url.searchParams.get("level");
         const category = url.searchParams.get("category");
+        const learnedOnly = url.searchParams.get("status") === "learned";
         const where: Prisma.VocabularyWhereInput = {
           ...(id ? { id } : {}),
           ...(level ? { level } : {}),
           ...(category ? { category } : {}),
+          ...(learnedOnly ? { users: { some: { userId: user.id } } } : {}),
           ...(query
             ? {
                 OR: [
@@ -539,6 +544,21 @@ async function mutate(request: Request, { params }: Context) {
         break;
       }
       case "vocabulary": {
+        if (request.method === "DELETE" && id && !action) {
+          data = await removeVocabulary(user.id, id);
+          break;
+        }
+        if (id === "start") {
+          const { vocabularyId } = z
+            .object({ vocabularyId: z.string() })
+            .parse(raw);
+          data = await startVocabulary(user.id, vocabularyId);
+          break;
+        }
+        if (id === "starter-pack") {
+          data = await addStarterFlashcards(user.id);
+          break;
+        }
         if (id !== "review") throw new ApiError("Hành động không hợp lệ.");
         const { vocabularyId, rating } = z
           .object({

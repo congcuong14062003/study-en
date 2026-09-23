@@ -4,15 +4,15 @@ import { currentUser } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function AuthLayout({
-    children,
+  children,
 }: Readonly<{
-    children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-    const user = await currentUser();
+  const user = await currentUser();
 
-    if (user) {
-        redirect("/dashboard");
-    }
+  if (user) {
+    redirect("/dashboard");
+  }
 
-    return children;
+  return children;
 }

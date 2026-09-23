@@ -51,15 +51,17 @@ export function StatCard({
   icon: Icon,
   color = "purple",
   note,
+  href,
 }: {
   label: string;
   value: string;
   icon: typeof BookOpen;
   color?: string;
   note?: string;
+  href?: string;
 }) {
-  return (
-    <Card className="stat-card">
+  const content = (
+    <>
       <div className="stat-top">
         <span className={`icon-box ${color}`}>
           <Icon />
@@ -68,8 +70,15 @@ export function StatCard({
       </div>
       <strong>{value}</strong>
       <p>{label}</p>
-    </Card>
+    </>
   );
+  if (href)
+    return (
+      <Link href={href} className="card stat-card stat-card-link">
+        {content}
+      </Link>
+    );
+  return <Card className="stat-card">{content}</Card>;
 }
 export function ActivityChart({ week }: { week: DashboardData["week"] }) {
   const max = Math.max(30, ...week.map((d) => d.minutes));
@@ -172,6 +181,7 @@ export function Dashboard() {
               value={formatNumber(p?.wordsLearned || 0)}
               label="Từ vựng đã học"
               note="Từng từ một"
+              href="/vocabulary?status=learned"
             />
             <StatCard
               icon={GraduationCap}
@@ -441,7 +451,7 @@ export function Dashboard() {
               <strong>{Math.min(10, data.reviewCount)} / 10</strong>
             </div>
             <Progress
-              value={(data.reviewCount / 10) * 100}
+              value={(Math.min(10, data.reviewCount) / 10) * 100}
               className="orange"
             />
             <Badge className="orange">

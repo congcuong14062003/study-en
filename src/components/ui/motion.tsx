@@ -11,7 +11,9 @@ export function PageMotion({ children }: { children: React.ReactNode }) {
     <motion.div
       key={pathname}
       className="page-motion"
-      initial={reduceMotion ? false : { opacity: 0, y: 14, filter: "blur(5px)" }}
+      initial={
+        reduceMotion ? false : { opacity: 0, y: 14, filter: "blur(5px)" }
+      }
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
     >
@@ -20,7 +22,13 @@ export function PageMotion({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function MotionGrid({ children, className }: { children: React.ReactNode; className: string }) {
+export function MotionGrid({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className: string;
+}) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -30,7 +38,9 @@ export function MotionGrid({ children, className }: { children: React.ReactNode;
       animate="visible"
       variants={{
         hidden: {},
-        visible: { transition: { staggerChildren: 0.065, delayChildren: 0.05 } },
+        visible: {
+          transition: { staggerChildren: 0.065, delayChildren: 0.05 },
+        },
       }}
     >
       {children}
@@ -38,7 +48,13 @@ export function MotionGrid({ children, className }: { children: React.ReactNode;
   );
 }
 
-export function MotionItem({ children, className }: { children: React.ReactNode; className?: string }) {
+export function MotionItem({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   const reduceMotion = useReducedMotion();
 
   return (
