@@ -12,7 +12,7 @@ import {
 } from "@/lib/security";
 import { onboardingSchema, noteSchema, profileSchema } from "@/lib/validation";
 import { dashboardData } from "@/services/dashboard";
-import { lessonData, publicQuiz } from "@/services/content";
+import { checkLessonAnswer, lessonData, publicQuiz } from "@/services/content";
 import {
   addStarterFlashcards,
   lockUser,
@@ -522,8 +522,15 @@ async function mutate(request: Request, { params }: Context) {
         break;
       }
       case "lessons": {
-        if (action !== "progress")
-          throw new ApiError("Hành động không hợp lệ.");
+        if (action === "answer") {
+          const values = z.object({
+            questionId: z.string().min(1),
+            selected: z.number().int().min(0),
+          }).parse(raw);
+          data = await checkLessonAnswer(id, user.id, values.questionId, values.selected);
+          break;
+        }
+        if (action !== "progress") throw new ApiError("Hành động không hợp lệ.");
         const { step } = z
           .object({ step: z.number().int().min(0).max(5) })
           .parse(raw);

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -44,6 +45,25 @@ type VocabularyPageData = PaginatedResponse<
     learnedCount: number;
   }
 >;
+function WordRelations({ word }: { word: Vocabulary }) {
+  if (!word.synonyms.length && !word.antonyms.length) return null;
+  return (
+    <span className="word-relations">
+      {word.synonyms.length > 0 && (
+        <span className="word-relation">
+          <span className="word-relation-label">Đồng nghĩa</span>
+          <span className="word-relation-values">{word.synonyms.join(" · ")}</span>
+        </span>
+      )}
+      {word.antonyms.length > 0 && (
+        <span className="word-relation">
+          <span className="word-relation-label">Trái nghĩa</span>
+          <span className="word-relation-values">{word.antonyms.join(" · ")}</span>
+        </span>
+      )}
+    </span>
+  );
+}
 export function VocabularyCard({
   word,
   onReview,
@@ -123,10 +143,22 @@ export function VocabularyCard({
         {word.ipa} <span>{word.partOfSpeech}</span>
       </div>
       <h3>{word.meaning}</h3>
+      {word.imageUrl && (
+        <Image
+          className="vocabulary-illustration"
+          src={word.imageUrl}
+          alt={`Minh họa cho ${word.word}: ${word.meaning}`}
+          width={480}
+          height={300}
+          sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      )}
       <div className="word-example">
+        <span className="word-example-label">Câu ví dụ · Bản dịch</span>
         <p>“{word.example}”</p>
         <span>{word.translation}</span>
       </div>
+      <WordRelations word={word} />
       <div className="word-actions">
         <Button
           variant="outline"
@@ -422,11 +454,16 @@ export function Flashcards() {
           Đã ôn {data.length} từ · +{data.length * 5} XP. Lịch ôn tiếp theo đã
           được lưu.
         </p>
-        <Button asChild>
-          <Link href="/dashboard">
-            Về không gian học tập <ArrowRight size={16} />
-          </Link>
-        </Button>
+        <div className="flex-row justify-center">
+          <Button onClick={() => { setIndex(0); void refresh(); }}>
+            Kiểm tra từ còn đến hạn <RotateCcw size={16} />
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/dashboard">
+              Về không gian học tập <ArrowRight size={16} />
+            </Link>
+          </Button>
+        </div>
       </Card>
     );
   return (
@@ -458,9 +495,20 @@ export function Flashcards() {
           </span>
           <span className="flashcard-face back">
             <span className="eyebrow">{word.word}</span>
+            {word.imageUrl && (
+              <Image
+                className="flashcard-illustration"
+                src={word.imageUrl}
+                alt={`Minh họa cho ${word.word}: ${word.meaning}`}
+                width={180}
+                height={120}
+                sizes="180px"
+              />
+            )}
             <strong>{word.meaning}</strong>
-            <span>{word.example}</span>
-            <small>{word.translation}</small>
+            <span className="flashcard-example">“{word.example}”</span>
+            <span className="flashcard-translation">{word.translation}</span>
+            <WordRelations word={word} />
           </span>
         </span>
       </button>

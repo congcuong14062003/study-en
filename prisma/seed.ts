@@ -15,6 +15,14 @@ async function main() {
     const courses = [...content.courses, ...extraCourses, ...c2Courses];
     const baseLessons = [...content.lessons, ...extraLessons, ...c2Lessons];
     const lessons = [...baseLessons, ...buildLearningPathLessons(courses, baseLessons)];
+    const vocabularyImages: Record<string, string> = {
+        v01: "/vocabulary/greeting.png",
+        v02: "/vocabulary/neighbor.png",
+        v03: "/vocabulary/breakfast.png",
+        v05: "/vocabulary/borrow.png",
+        v06: "/vocabulary/quiet.png",
+        v10: "/vocabulary/crowded.png",
+    };
     const vocabulary = [...content.vocabulary, ...extraVocabulary, ...moreVocabulary, ...coreLexicon, ...topicVocabulary, ...c2Vocabulary];
     const grammar = [...content.grammar, ...expandedGrammar, ...c2Grammar];
     const listening = [...content.listening, ...immersiveListening, ...c2Listening];
@@ -26,8 +34,10 @@ async function main() {
         const data = { ...course, title: titles[index] || course.title, color: ["blue", "purple", "orange"][index] || course.color, icon: ["book", "messages", "briefcase"][index] || course.icon, published: true };
         await db.course.upsert({ where: { id: item.id }, create: data, update: data });
     }
-    for (const v of vocabulary)
-        await db.vocabulary.upsert({ where: { id: v.id }, create: v, update: v });
+    for (const v of vocabulary) {
+        const data = { ...v, imageUrl: vocabularyImages[v.id] ?? null };
+        await db.vocabulary.upsert({ where: { id: v.id }, create: data, update: data });
+    }
     for (const g of grammar)
         await db.grammarLesson.upsert({ where: { id: g.id }, create: g, update: g });
     for (const l of listening)

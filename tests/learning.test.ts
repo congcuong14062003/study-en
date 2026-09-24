@@ -40,6 +40,29 @@ import {
 } from "../src/services/ai";
 import { paginationMeta, readPagination } from "../src/lib/pagination";
 import { cmsSchemas } from "../src/services/admin";
+import { insertSentenceToken } from "../src/lib/sentence-order";
+describe("Sentence word ordering", () => {
+  const tokens = [
+    { id: "a", value: "I" },
+    { id: "b", value: "like" },
+    { id: "c", value: "tea" },
+  ];
+  it("inserts bank words at the start, between words, and at the end", () => {
+    let state = insertSentenceToken([...tokens, { id: "d", value: "today" }], [], "b", 0);
+    state = insertSentenceToken(state.bank, state.answer, "a", 0);
+    state = insertSentenceToken(state.bank, state.answer, "c", 1);
+    state = insertSentenceToken(state.bank, state.answer, "d", state.answer.length);
+    assert.deepEqual(state.answer.map((item) => item.id), ["a", "c", "b", "d"]);
+    assert.equal(state.bank.length, 0);
+  });
+  it("moves chosen words in both directions without duplication", () => {
+    const forward = insertSentenceToken([], tokens, "a", 3);
+    assert.deepEqual(forward.answer.map((item) => item.id), ["b", "c", "a"]);
+    const backward = insertSentenceToken(forward.bank, forward.answer, "a", 0);
+    assert.deepEqual(backward.answer.map((item) => item.id), ["a", "b", "c"]);
+    assert.equal(new Set(backward.answer.map((item) => item.id)).size, 3);
+  });
+});
 describe("Spaced repetition", () => {
   const now = new Date("2026-09-07T10:00:00Z");
   it("relearning an old card resets repetitions and schedules ten minutes", () => {
@@ -165,6 +188,20 @@ describe("Admin content validation", () => {
     assert.equal(
       cmsSchemas.vocabulary.parse({ ...vocabulary, ipa: "" }).ipa,
       "",
+    );
+    assert.equal(
+      cmsSchemas.vocabulary.parse({
+        ...vocabulary,
+        imageUrl: "/vocabulary/breakfast.png",
+      }).imageUrl,
+      "/vocabulary/breakfast.png",
+    );
+    assert.equal(
+      cmsSchemas.vocabulary.safeParse({
+        ...vocabulary,
+        imageUrl: "https://example.com/untrusted.png",
+      }).success,
+      false,
     );
 
     const missingDefinition = cmsSchemas.vocabulary.safeParse({

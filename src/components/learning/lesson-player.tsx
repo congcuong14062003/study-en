@@ -32,7 +32,7 @@ import {
 import { ReadingContent } from "./content-library";
 import { MediaAudioPlayer } from "./audio-player";
 import { SpeakingRecorder } from "./speaking";
-import { MiniWriting, SentenceBuilder, WordMatch } from "./lesson-activities";
+import { hasListeningGap, ListeningCloze, MiniWriting, ReadingQuestion, SentenceBuilder, WordMatch } from "./lesson-activities";
 import { QuizPlayer } from "@/components/quiz/quiz-player";
 import { FavoriteButton } from "./favorite-button";
 import type { LessonData } from "@/services/content";
@@ -42,6 +42,7 @@ export function LessonPlayer({ id }: { id: string }) {
   );
   const [step, setStep] = useState(0),
     [maxStep, setMaxStep] = useState(0),
+    [activityDone, setActivityDone] = useState<Record<number, boolean>>({}),
     [busy, setBusy] = useState(false),
     [note, setNote] = useState(false),
     [noteBusy, setNoteBusy] = useState(false),
@@ -52,6 +53,7 @@ export function LessonPlayer({ id }: { id: string }) {
       setStep(Math.min(data.progress?.step || 0, 5));
       setMaxStep(Math.min(data.progress?.step || 0, 5));
       setFinished(Boolean(data.progress?.completed));
+      setActivityDone({});
     }
   }, [data]);
   useEffect(() => {
@@ -145,12 +147,20 @@ export function LessonPlayer({ id }: { id: string }) {
     data.grammar?.examples[0] ||
     data.words[0]?.example ||
     "I practise English every day.";
+  const listenWord = data.words.find(hasListeningGap);
+  const readingQuestion = data.quiz.questions.find((question) => question.skill === "reading");
   const skippable = step === 2 || step === 4;
+  const canAdvance = finished || step < maxStep || (
+    step === 0 ? !data.words.length || Boolean(activityDone[0]) :
+    step === 1 ? Boolean(activityDone[1]) :
+    step === 2 ? !listenWord || Boolean(activityDone[2]) :
+    step === 4 ? !readingQuestion || Boolean(activityDone[4]) : true
+  );
   return (
     <>
       <div className="lesson-heading">
         <div>
-          <Link className="back-link" href={`/courses/${data.lesson.courseId}`}>
+          <Link className="back-link" href="/study-plan">
             <ArrowLeft size={14} />
             {data.lesson.course.title}
           </Link>
@@ -189,7 +199,7 @@ export function LessonPlayer({ id }: { id: string }) {
       <div className="lesson-content interactive-lesson">
         {step === 0 && (
           <div className="content-narrow">
-            <WordMatch words={data.words} />
+            <WordMatch words={data.words} onComplete={() => setActivityDone((current) => ({ ...current, 0: true }))} />
             {data.grammar && (
               <Card className="grammar-bridge">
                 <div>
@@ -210,11 +220,14 @@ export function LessonPlayer({ id }: { id: string }) {
         )}
         {step === 1 && (
           <div className="content-narrow">
-            <SentenceBuilder sentence={sentence} />
+            <SentenceBuilder sentence={sentence} onComplete={() => setActivityDone((current) => ({ ...current, 1: true }))} />
           </div>
         )}
         {step === 2 && (
           <div className="content-narrow">
+            {listenWord && (
+              <ListeningCloze word={listenWord} onComplete={() => setActivityDone((current) => ({ ...current, 2: true }))} />
+            )}
             {data.listening ? (
               <Card className="section-card lesson-skill-card">
                 <div className="skill-tip">
@@ -253,6 +266,9 @@ export function LessonPlayer({ id }: { id: string }) {
                 <ReadingContent article={data.reading} />
               </>
             )}
+            {readingQuestion && (
+              <ReadingQuestion lessonId={id} question={readingQuestion} onComplete={() => setActivityDone((current) => ({ ...current, 4: true }))} />
+            )}
             <MiniWriting
               lessonId={id}
               prompt={`Viết 2–3 câu liên quan đến “${data.lesson.title}”.`}
@@ -264,6 +280,7 @@ export function LessonPlayer({ id }: { id: string }) {
           <div className="content-narrow">
             <QuizPlayer
               quiz={data.quiz}
+              returnHref="/study-plan"
               onComplete={async (result) => {
                 setFinished(result.passed);
                 if (session.current) {
@@ -293,10 +310,10 @@ export function LessonPlayer({ id }: { id: string }) {
           <div className="lesson-next-actions">
             {skippable && (
               <Button variant="ghost" onClick={next} disabled={busy}>
-                Để sau
+                {step === 2 ? "Không nghe được" : "Để sau"}
               </Button>
             )}
-            <Button onClick={next} disabled={busy}>
+            <Button onClick={next} disabled={busy || !canAdvance}>
               {busy ? (
                 <Loader2 className="spin" size={16} />
               ) : skippable ? (
@@ -315,7 +332,7 @@ export function LessonPlayer({ id }: { id: string }) {
           </Button>
         ) : (
           <Button variant="secondary" asChild>
-            <Link href="/dashboard">Về dashboard</Link>
+            <Link href="/study-plan">Về bản đồ học</Link>
           </Button>
         )}
       </div>

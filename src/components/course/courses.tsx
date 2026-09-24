@@ -19,8 +19,8 @@ import {
   LockKeyhole,
   MessageCircle,
   Mic2,
+  PenLine,
   Plane,
-  Play,
   Presentation,
   Sparkles,
   Star,
@@ -75,15 +75,12 @@ type CoursePage = PaginatedResponse<
   }
 >;
 
-function CourseTimeline({ course }: { course: CourseRecord }) {
+export function CourseTimeline({ course }: { course: CourseRecord }) {
   const units = Array.from(
     { length: Math.ceil(course.lessons.length / 6) },
     (_, index) => course.lessons.slice(index * 6, index * 6 + 6),
   );
-  const activeIndex = Math.max(
-    0,
-    course.lessons.findIndex((lesson) => !lesson.progress?.completed),
-  );
+  const activeIndex = course.lessons.findIndex((lesson) => !lesson.progress?.completed);
   return (
     <div className="course-path">
       {units.map((lessons, unitIndex) => (
@@ -91,10 +88,8 @@ function CourseTimeline({ course }: { course: CourseRecord }) {
           <div className="path-unit-heading">
             <div>
               <span>CHẶNG {unitIndex + 1}</span>
-              <h2>
-                {unitIndex === 0 ? "Xây nền và dùng ngay" : "Mở rộng phản xạ"}
-              </h2>
-              <p>6 bài ngắn · Từ vựng · Ngữ pháp · Nghe · Nói · Đọc · Viết</p>
+              <h2>{unitIndex === 0 ? "Bắt đầu hành trình" : "Tiếp tục chinh phục"}</h2>
+              <p>{lessons.length} bài ngắn · Xếp câu · Nghe · Đọc · Luyện tập</p>
             </div>
             <Badge className="green">
               <Trophy size={12} />{" "}
@@ -107,13 +102,16 @@ function CourseTimeline({ course }: { course: CourseRecord }) {
               const globalIndex = unitIndex * 6 + localIndex;
               const completed = Boolean(lesson.progress?.completed);
               const active = course.enrolled && globalIndex === activeIndex;
+              const icons = [BookOpen, Headphones, Mic2, PenLine, Sparkles, Star];
+              const NodeIcon = icons[localIndex % icons.length];
               const node = (
                 <>
+                  {active && <span className="path-start">BẮT ĐẦU</span>}
                   <span className="path-node-icon">
                     {completed ? (
                       <Check size={24} />
                     ) : course.enrolled ? (
-                      <Play size={22} fill="currentColor" />
+                      <NodeIcon size={25} />
                     ) : (
                       <LockKeyhole size={20} />
                     )}
@@ -121,18 +119,18 @@ function CourseTimeline({ course }: { course: CourseRecord }) {
                   <span className="path-node-copy">
                     <small>
                       BÀI {lesson.order} ·{" "}
-                      {completed ? "ĐÃ XONG" : active ? "HỌC TIẾP" : "SẴN SÀNG"}
+                      {completed ? "ĐÃ XONG" : active ? "HỌC TIẾP" : course.enrolled ? "SẴN SÀNG" : "THAM GIA ĐỂ HỌC"}
                     </small>
                     <strong>{lesson.title}</strong>
                     <span>{lesson.description}</span>
                   </span>
-                  <ArrowRight size={18} className="path-arrow" />
                 </>
               );
               return course.enrolled ? (
                 <Link
                   href={`/lessons/${lesson.id}`}
                   className={`path-node bend-${localIndex % 3} ${completed ? "completed" : ""} ${active ? "active" : ""}`}
+                  aria-label={`Bài ${lesson.order}: ${lesson.title}. ${completed ? "Đã hoàn thành" : active ? "Học tiếp" : "Chưa hoàn thành"}`}
                   key={lesson.id}
                 >
                   {node}
@@ -153,7 +151,7 @@ function CourseTimeline({ course }: { course: CourseRecord }) {
             </span>
             <div>
               <strong>Hoàn thành chặng</strong>
-              <p>Chinh phục đủ 6 bài để mở khóa cột mốc tiếp theo.</p>
+              <p>Hoàn thành {lessons.length} bài để chinh phục cột mốc này.</p>
             </div>
           </div>
         </section>

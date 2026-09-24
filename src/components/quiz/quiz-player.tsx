@@ -74,9 +74,11 @@ export function QuizPage({
 export function QuizPlayer({
   quiz,
   onComplete,
+  returnHref = "/dashboard",
 }: {
   quiz: PublicQuiz;
   onComplete?: (result: QuizResult) => void;
+  returnHref?: string;
 }) {
   const [index, setIndex] = useState(0),
     [answers, setAnswers] = useState<Record<string, number>>({}),
@@ -166,10 +168,8 @@ export function QuizPlayer({
           )}
           <div className="flex-row">
             <Button asChild>
-              <Link
-                href={quiz.kind === "placement" ? "/dashboard" : "/dashboard"}
-              >
-                Về dashboard <ArrowRight size={16} />
+              <Link href={returnHref}>
+                {returnHref === "/study-plan" ? "Về bản đồ học" : "Về dashboard"} <ArrowRight size={16} />
               </Link>
             </Button>
             {quiz.kind !== "placement" && (

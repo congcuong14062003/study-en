@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   GripVertical,
+  Headphones,
   Loader2,
   MousePointer2,
   PenLine,
@@ -16,6 +17,9 @@ import { toast } from "sonner";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/utils";
+import { insertSentenceToken, type SentenceToken } from "@/lib/sentence-order";
+import type { PublicQuiz } from "@/services/content";
+import { AudioButton, speak } from "./audio-player";
 
 function deterministicShuffle<T extends { id: string }>(items: T[]) {
   if (items.length < 2) return items;
@@ -25,7 +29,7 @@ function deterministicShuffle<T extends { id: string }>(items: T[]) {
     : sorted;
 }
 
-export function WordMatch({ words }: { words: Vocabulary[] }) {
+export function WordMatch({ words, onComplete }: { words: Vocabulary[]; onComplete?: () => void }) {
   const choices = words.slice(0, 4);
   const meanings = useMemo(
     () =>
@@ -43,6 +47,7 @@ export function WordMatch({ words }: { words: Vocabulary[] }) {
     if (!wordId || !meaningId) return;
     if (wordId === meaningId) {
       setMatched((current) => [...current, wordId]);
+      if (matched.length + 1 === choices.length) onComplete?.();
       setWordId("");
       setMeaningId("");
       setWrong(false);
@@ -55,7 +60,7 @@ export function WordMatch({ words }: { words: Vocabulary[] }) {
       setWrong(false);
     }, 650);
     return () => window.clearTimeout(timeout);
-  }, [wordId, meaningId]);
+  }, [wordId, meaningId, matched.length, choices.length, onComplete]);
 
   return (
     <Card className="activity-card match-activity">
@@ -110,15 +115,13 @@ export function WordMatch({ words }: { words: Vocabulary[] }) {
   );
 }
 
-type Token = { id: string; value: string };
-
-function tokenize(sentence: string): Token[] {
+function tokenize(sentence: string): SentenceToken[] {
   return (sentence.match(/[A-Za-zÀ-ỹ0-9']+|[.,!?;:]/g) || []).map(
     (value, index) => ({ id: `token-${index}-${value}`, value }),
   );
 }
 
-function normalize(tokens: Token[]) {
+function normalize(tokens: SentenceToken[]) {
   return tokens
     .map((token) => token.value)
     .join(" ")
@@ -127,47 +130,66 @@ function normalize(tokens: Token[]) {
     .toLowerCase();
 }
 
-export function SentenceBuilder({ sentence }: { sentence: string }) {
+export function SentenceBuilder({ sentence, onComplete }: { sentence: string; onComplete?: () => void }) {
   const target = useMemo(() => tokenize(sentence), [sentence]);
   const initialBank = useMemo(() => deterministicShuffle(target), [target]);
-  const [bank, setBank] = useState<Token[]>(initialBank);
-  const [answer, setAnswer] = useState<Token[]>([]);
+  const [bank, setBank] = useState<SentenceToken[]>(initialBank);
+  const [answer, setAnswer] = useState<SentenceToken[]>([]);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [result, setResult] = useState<"correct" | "wrong" | null>(null);
 
   useEffect(() => {
     setBank(initialBank);
     setAnswer([]);
     setResult(null);
+    setDropIndex(null);
   }, [initialBank]);
 
-  function add(token: Token) {
-    setBank((current) => current.filter((item) => item.id !== token.id));
-    setAnswer((current) => [...current, token]);
+  function place(id: string, targetIndex: number) {
+    const next = insertSentenceToken(bank, answer, id, targetIndex);
+    setBank(next.bank);
+    setAnswer(next.answer);
     setResult(null);
   }
 
-  function remove(token: Token) {
+  function remove(token: SentenceToken) {
     setAnswer((current) => current.filter((item) => item.id !== token.id));
     setBank((current) => [...current, token]);
     setResult(null);
   }
 
-  function drop(
-    event: React.DragEvent<HTMLDivElement>,
-    destination: "answer" | "bank",
-  ) {
+  function insertionIndex(event: React.DragEvent<HTMLDivElement>) {
+    const tokens = event.currentTarget.querySelectorAll<HTMLElement>("[data-answer-index]");
+    for (const element of tokens) {
+      const index = Number(element.dataset.answerIndex);
+      const rect = element.getBoundingClientRect();
+      if (event.clientY < rect.top ||
+          (event.clientY <= rect.bottom && event.clientX < rect.left + rect.width / 2))
+        return index;
+    }
+    return answer.length;
+  }
+
+  function dropOnAnswer(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
     const id = event.dataTransfer.getData("text/plain");
-    const fromBank = bank.find((token) => token.id === id);
-    const fromAnswer = answer.find((token) => token.id === id);
-    if (destination === "answer" && fromBank) add(fromBank);
-    if (destination === "bank" && fromAnswer) remove(fromAnswer);
+    place(id, insertionIndex(event));
+    setDropIndex(null);
+  }
+
+  function dropOnBank(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain");
+    const token = answer.find((item) => item.id === id);
+    if (token) remove(token);
+    setDropIndex(null);
   }
 
   function reset() {
     setBank(initialBank);
     setAnswer([]);
     setResult(null);
+    setDropIndex(null);
   }
 
   return (
@@ -179,22 +201,48 @@ export function SentenceBuilder({ sentence }: { sentence: string }) {
         <div>
           <Badge className="orange">2 · XẾP CÂU</Badge>
           <h2>Kéo thả hoặc bấm từ theo đúng thứ tự</h2>
-          <p>Ghép một câu hoàn chỉnh từ các mảnh bên dưới.</p>
+          <p>Kéo từ vào đầu, giữa hoặc cuối câu. Kéo từ đã chọn để đổi chỗ.</p>
         </div>
       </div>
       <div
-        className={`sentence-dropzone ${result || ""}`}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => drop(event, "answer")}
+        className={`sentence-dropzone ${result || ""} ${dropIndex !== null ? "drag-over" : ""}`}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          const index = insertionIndex(event);
+          setDropIndex((current) => current === index ? current : index);
+        }}
+        onDragLeave={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (event.clientX < rect.left || event.clientX > rect.right ||
+              event.clientY < rect.top || event.clientY > rect.bottom)
+            setDropIndex(null);
+        }}
+        onDrop={dropOnAnswer}
       >
         {answer.length ? (
-          answer.map((token) => (
+          answer.map((token, index) => (
             <button
+              type="button"
+              data-answer-index={index}
+              className={`${dropIndex === index ? "insert-before" : ""} ${dropIndex === answer.length && index === answer.length - 1 ? "insert-after" : ""}`}
               draggable
-              onDragStart={(event) =>
-                event.dataTransfer.setData("text/plain", token.id)
-              }
+              onDragStart={(event) => {
+                event.dataTransfer.setData("text/plain", token.id);
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => setDropIndex(null)}
               onClick={() => remove(token)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowLeft" && index > 0) {
+                  event.preventDefault();
+                  place(token.id, index - 1);
+                } else if (event.key === "ArrowRight" && index < answer.length - 1) {
+                  event.preventDefault();
+                  place(token.id, index + 2);
+                }
+              }}
+              aria-label={`${token.value}. Bấm để bỏ khỏi câu; dùng phím mũi tên trái, phải để đổi vị trí`}
               key={token.id}
             >
               {token.value}
@@ -208,15 +256,18 @@ export function SentenceBuilder({ sentence }: { sentence: string }) {
       <div
         className="sentence-bank"
         onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => drop(event, "bank")}
+        onDrop={dropOnBank}
       >
         {bank.map((token) => (
           <button
+            type="button"
             draggable
-            onDragStart={(event) =>
-              event.dataTransfer.setData("text/plain", token.id)
-            }
-            onClick={() => add(token)}
+            onDragStart={(event) => {
+              event.dataTransfer.setData("text/plain", token.id);
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onDragEnd={() => setDropIndex(null)}
+            onClick={() => place(token.id, answer.length)}
             key={token.id}
           >
             <GripVertical size={13} />
@@ -230,11 +281,11 @@ export function SentenceBuilder({ sentence }: { sentence: string }) {
         </Button>
         <Button
           disabled={bank.length > 0 || !answer.length}
-          onClick={() =>
-            setResult(
-              normalize(answer) === normalize(target) ? "correct" : "wrong",
-            )
-          }
+          onClick={() => {
+            const correct = normalize(answer) === normalize(target);
+            setResult(correct ? "correct" : "wrong");
+            if (correct) onComplete?.();
+          }}
         >
           Kiểm tra câu <Check size={15} />
         </Button>
@@ -246,8 +297,107 @@ export function SentenceBuilder({ sentence }: { sentence: string }) {
       )}
       {result === "wrong" && (
         <div className="activity-feedback error">
-          <X size={18} /> Chưa đúng thứ tự. Bấm từng từ để đưa về kho và thử lại
-          nhé.
+          <X size={18} /> Chưa đúng thứ tự. Kéo từ để đổi chỗ, hoặc bấm để đưa
+          từ về kho rồi thử lại nhé.
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function wordPattern(word: string) {
+  return new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+}
+export function hasListeningGap(word: Vocabulary) {
+  return wordPattern(word.word).test(word.example);
+}
+export function ListeningCloze({ word, onComplete }: { word: Vocabulary; onComplete?: () => void }) {
+  const [answer, setAnswer] = useState("");
+  const [result, setResult] = useState<"correct" | "wrong" | null>(null);
+  const masked = word.example.replace(wordPattern(word.word), "_____");
+  function check() {
+    const correct = answer.trim().toLocaleLowerCase("en-US") === word.word.toLocaleLowerCase("en-US");
+    setResult(correct ? "correct" : "wrong");
+    if (correct) onComplete?.();
+  }
+  return (
+    <Card className="activity-card listen-cloze">
+      <div className="activity-heading">
+        <span className="icon-box purple"><Headphones size={21} /></span>
+        <div>
+          <Badge>3 · NGHE VÀ ĐIỀN TỪ</Badge>
+          <h2>Nghe câu rồi nhập từ còn thiếu</h2>
+          <p>Nghe lại hoặc giảm tốc độ nếu cần. Đáp án là một từ trong bài này.</p>
+        </div>
+      </div>
+      <div className="listen-cloze-audio">
+        <AudioButton text={word.example} label="Nghe câu" />
+        <Button variant="outline" size="sm" onClick={() => speak(word.example, "en-US", 0.75)}>Nghe chậm</Button>
+      </div>
+      <p className="listen-cloze-sentence">{masked}</p>
+      <form onSubmit={(event) => { event.preventDefault(); check(); }} className="listen-cloze-form">
+        <input
+          className="input"
+          value={answer}
+          onChange={(event) => { setAnswer(event.target.value); setResult(null); }}
+          aria-label="Từ còn thiếu trong câu nghe"
+          placeholder="Nhập từ còn thiếu…"
+          autoComplete="off"
+        />
+        <Button type="submit" disabled={!answer.trim()}>Kiểm tra <Check size={15} /></Button>
+      </form>
+      {result === "correct" && <div className="activity-success"><CheckCircle2 size={18} /> Chính xác! {word.example}<small>{word.translation}</small></div>}
+      {result === "wrong" && <div className="activity-feedback error"><X size={18} /> Chưa đúng, nghe lại và thử thêm lần nữa nhé.</div>}
+    </Card>
+  );
+}
+
+type LessonQuestion = PublicQuiz["questions"][number];
+export function ReadingQuestion({ lessonId, question, onComplete }: { lessonId: string; question: LessonQuestion; onComplete?: () => void }) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const [result, setResult] = useState<{ correct: boolean; correctAnswer: number; explanation: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function check() {
+    if (selected === null || busy) return;
+    setBusy(true);
+    try {
+      const response = await api<{ correct: boolean; correctAnswer: number; explanation: string }>(`/lessons/${lessonId}/answer`, {
+        method: "POST",
+        body: JSON.stringify({ questionId: question.id, selected }),
+      });
+      setResult(response);
+      if (response.correct) onComplete?.();
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card className="activity-card reading-check">
+      <div className="activity-heading">
+        <span className="icon-box green"><CheckCircle2 size={21} /></span>
+        <div><Badge className="green">5 · ĐỌC HIỂU</Badge><h2>{question.prompt}</h2><p>Đọc thông tin rồi chọn đáp án phù hợp nhất.</p></div>
+      </div>
+      {question.passage && <p className="reading-check-passage">{question.passage}</p>}
+      <div className="quiz-options">
+        {question.options.map((option, index) => (
+          <button
+            type="button"
+            key={index}
+            className={`quiz-option ${selected === index ? "selected" : ""}`}
+            onClick={() => { setSelected(index); setResult(null); }}
+            aria-pressed={selected === index}
+          >
+            <span>{String.fromCharCode(65 + index)}</span>{option}
+          </button>
+        ))}
+      </div>
+      <div className="activity-actions"><Button disabled={selected === null || busy} onClick={check}>{busy ? <Loader2 size={16} className="spin" /> : <Check size={16} />} Kiểm tra</Button></div>
+      {result && (
+        <div className={result.correct ? "activity-success" : "activity-feedback error"} role="status">
+          {result.correct ? <CheckCircle2 size={18} /> : <X size={18} />}
+          <span>{result.correct ? "Chính xác!" : `Chưa đúng. Đáp án: ${question.options[result.correctAnswer]}.`} {result.explanation}</span>
         </div>
       )}
     </Card>

@@ -35,6 +35,27 @@ export async function publicQuiz(id: string, userId?: string) {
   };
 }
 export type PublicQuiz = Awaited<ReturnType<typeof publicQuiz>>;
+export async function checkLessonAnswer(
+  lessonId: string,
+  userId: string,
+  questionId: string,
+  selected: number,
+) {
+  const quiz = await publicQuiz(`quiz-${lessonId}`, userId);
+  if (!quiz.questions.some((question) => question.id === questionId))
+    throw new ApiError("Câu hỏi không thuộc bài học này.", 404);
+  const question = await db.question.findUnique({
+    where: { id: questionId },
+    select: { correctAnswer: true, explanation: true, options: true },
+  });
+  if (!question || selected >= question.options.length)
+    throw new ApiError("Đáp án không hợp lệ.", 400);
+  return {
+    correct: selected === question.correctAnswer,
+    correctAnswer: question.correctAnswer,
+    explanation: question.explanation,
+  };
+}
 export async function lessonData(id: string, userId: string) {
   const lesson = await db.lesson.findFirst({
     where: { id, published: true, course: { published: true } },

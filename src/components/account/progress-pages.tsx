@@ -34,6 +34,14 @@ import {
 } from "@/components/ui/states";
 import type { DashboardData } from "@/services/dashboard";
 import { AIRecommendation } from "@/components/ai/ai-recommendation";
+import { CourseTimeline, type CourseRecord } from "@/components/course/courses";
+function StudyCoursePath({ courseId }: { courseId: string }) {
+  const { data, loading, error, refresh } = useData<CourseRecord>(`/courses/${courseId}`);
+  if (loading && !data) return <LoadingSkeleton />;
+  if (error || !data)
+    return <ErrorState message={error || "Không thể tải bản đồ bài học"} retry={refresh} />;
+  return <CourseTimeline course={data} />;
+}
 export function ProgressPages({
   section,
 }: {
@@ -42,6 +50,7 @@ export function ProgressPages({
   const { data, loading, error, refresh } =
     useData<DashboardData>("/dashboard");
   const [monthOffset, setMonthOffset] = useState(0);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
   if (loading) return <LoadingSkeleton />;
   if (error || !data)
     return <ErrorState message={error || "Không có dữ liệu"} retry={refresh} />;
@@ -110,6 +119,9 @@ export function ProgressPages({
       ),
       done = data.lessonProgress.filter((p) => p.completed).length;
     const weak = Object.entries(scores).sort((a, b) => a[1] - b[1])[0];
+    const currentCourseId = data.enrollments.some((item) => item.courseId === selectedCourseId)
+      ? selectedCourseId
+      : data.enrollments[0]?.courseId;
     return (
       <div className="content-narrow">
         <PageHeading
@@ -135,6 +147,36 @@ export function ProgressPages({
             />
           </div>
         </Card>
+        <section className="plan-learning-map" aria-label="Bản đồ bài học">
+          <div className="plan-map-heading">
+            <div>
+              <span className="eyebrow">BẢN ĐỒ HỌC TẬP</span>
+              <h2>Đi từng bài, mở từng cột mốc</h2>
+              <p>Chạm vào nút trên bản đồ để học xếp câu, nghe, đọc và làm thử thách.</p>
+            </div>
+            {data.enrollments.length > 1 && (
+              <select
+                className="input"
+                value={currentCourseId}
+                onChange={(event) => setSelectedCourseId(event.target.value)}
+                aria-label="Chọn khóa học cho bản đồ"
+              >
+                {data.enrollments.map((item) => (
+                  <option value={item.courseId} key={item.courseId}>{item.course.title}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          {currentCourseId ? (
+            <StudyCoursePath key={currentCourseId} courseId={currentCourseId} />
+          ) : (
+            <Card className="empty-state">
+              <h3>Chọn khóa học đầu tiên để mở bản đồ</h3>
+              <p>Mỗi khóa có các bài ngắn và lưu tiến độ theo tài khoản của anh.</p>
+              <Button asChild><Link href="/courses">Khám phá khóa học <ArrowRight size={16} /></Link></Button>
+            </Card>
+          )}
+        </section>
         <div className="plan-timeline">
           {weeks.map((w, i) => (
             <Card className="plan-week" key={w.week}>

@@ -149,7 +149,7 @@ export default async function Page({ params, searchParams }: Props) {
       break;
     case "lessons":
       if (!id) notFound();
-      content = <LessonPlayer id={id} />;
+      content = <LessonPlayer id={id} key={id} />;
       break;
     case "quiz":
       content = (

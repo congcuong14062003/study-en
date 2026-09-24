@@ -28,6 +28,7 @@ export const cmsSchemas = {
     collocations: strings,
     wordFamily: strings,
     audioUrl: z.url().startsWith("https://").nullable().optional(),
+    imageUrl: z.string().regex(/^\/(?:uploads|vocabulary)\/[A-Za-z0-9._-]+\.(?:png|jpe?g|webp)$/).nullable().optional(),
   }),
   grammar: z.object({
     title: str,

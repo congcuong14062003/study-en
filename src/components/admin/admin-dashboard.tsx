@@ -110,6 +110,7 @@ const templates: Record<string, Row> = {
     antonyms: [],
     collocations: [],
     wordFamily: [],
+    imageUrl: "",
   },
   grammar: {
     title: "",
@@ -181,6 +182,7 @@ const labels: Record<string, string> = {
   collocations: "Cụm từ",
   wordFamily: "Họ từ",
   audioUrl: "URL bản thu âm (HTTPS, tùy chọn)",
+  imageUrl: "Đường dẫn ảnh minh họa (tùy chọn)",
   structure: "Cấu trúc",
   examples: "Các ví dụ",
   notes: "Lưu ý",
@@ -312,6 +314,7 @@ export function AdminDashboard({
           payload[key] = value.map((v) => String(v).trim()).filter(Boolean);
       }
       if (payload.audioUrl === "") payload.audioUrl = null;
+      if (payload.imageUrl === "") payload.imageUrl = null;
       if (section === "lessons")
         for (const key of ["grammarId", "listeningId", "readingId"])
           if (!payload[key]) payload[key] = null;
@@ -666,13 +669,13 @@ export function AdminDashboard({
             <p className="field-help mb-4">Mã: {String(editing.id)}</p>
           )}
           <form onSubmit={save}>
-            {section === "courses" && (
+            {(section === "courses" || section === "vocabulary") && (
               <div className="field">
-                <label htmlFor="cover-upload">
-                  Tải ảnh bìa từ máy (PNG, JPEG, WebP · tối đa 2 MB)
+                <label htmlFor="content-image-upload">
+                  {section === "courses" ? "Tải ảnh bìa" : "Tải ảnh minh họa từ vựng"} từ máy (PNG, JPEG, WebP · tối đa 2 MB)
                 </label>
                 <input
-                  id="cover-upload"
+                  id="content-image-upload"
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   disabled={busy}
@@ -689,7 +692,10 @@ export function AdminDashboard({
                       });
                       const result = await response.json();
                       if (!response.ok) throw new Error(result.error);
-                      setForm((f) => ({ ...f, thumbnail: result.url }));
+                      setForm((f) => ({
+                        ...f,
+                        [section === "courses" ? "thumbnail" : "imageUrl"]: result.url,
+                      }));
                       toast.success(
                         "Đã tải ảnh lên. Nhấn Lưu thay đổi để dùng ảnh này.",
                       );
