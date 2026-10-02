@@ -3679,6 +3679,11 @@ input[type="checkbox"] {
   line-height: 1.9;
   margin-top: 20px;
 }
+.quiz-word-hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 .quiz-options {
   display: grid;
   gap: 12px;
@@ -3699,7 +3704,7 @@ input[type="checkbox"] {
     border 0.2s,
     background 0.2s;
 }
-.quiz-option > span {
+.quiz-option > .quiz-option-label {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -3716,13 +3721,17 @@ input[type="checkbox"] {
   background: var(--primary-soft);
   color: var(--primary);
 }
-.quiz-option.selected > span {
+.quiz-option.selected > .quiz-option-label {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
 }
 .quiz-option > svg {
   margin-left: auto;
+}
+.quiz-option > .quiz-option-text {
+  min-width: 0;
+  line-height: 1.5;
 }
 .quiz-footer {
   display: flex;
@@ -4133,6 +4142,57 @@ input[type="checkbox"] {
 }
 .dark .inline-word {
   background: var(--primary-soft);
+}
+.reading-gloss-word {
+  display: inline;
+  padding: 0 1px;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+.reading-gloss-word:hover,
+.reading-gloss-word:focus-visible {
+  color: var(--primary);
+  background: var(--primary-soft);
+  outline: none;
+}
+.reading-gloss-word:focus-visible {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.reading-gloss-tooltip {
+  z-index: 100;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 10px 13px;
+  border: 1px solid #4a5a64;
+  border-radius: 10px;
+  background: #203039;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 12px 30px #0003;
+  overflow-wrap: anywhere;
+}
+.reading-gloss-tooltip strong {
+  margin-right: 7px;
+}
+.reading-gloss-ipa {
+  color: #acc4d1;
+  font-size: 12px;
+}
+.reading-gloss-meaning {
+  display: block;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #ffffff30;
+}
+.reading-gloss-arrow {
+  fill: #203039;
 }
 .lesson-heading {
   display: flex;
@@ -5356,7 +5416,7 @@ tbody > tr:hover {
     font-size: 13px;
     gap: 11px;
   }
-  .quiz-option > span {
+  .quiz-option > .quiz-option-label {
     width: 28px;
     height: 28px;
   }

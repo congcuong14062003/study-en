@@ -31,6 +31,7 @@ import {
   EmptyState,
 } from "@/components/ui/states";
 import { AudioButton, MediaAudioPlayer } from "./audio-player";
+import { InteractiveReadingText } from "./interactive-reading-text";
 import { FavoriteButton } from "./favorite-button";
 import {
   Dialog,
@@ -136,13 +137,10 @@ export function GrammarContent({ lesson }: { lesson: GrammarLesson }) {
 }
 
 export function ReadingContent({ article }: { article: ReadingArticle }) {
-  const { data: words } = useData<Word[]>("/vocabulary");
+  const { data: words, loading: vocabularyLoading } = useData<Word[]>("/vocabulary");
   const [translated, setTranslated] = useState(false);
   const [selected, setSelected] = useState<Word | null>(null);
-  const wordMap = useMemo(
-    () => new Map((words || []).map((word) => [word.word.toLowerCase(), word])),
-    [words],
-  );
+  const wordMap = useMemo(() => new Map((words || []).map((word) => [word.id, word])), [words]);
   const wordCount = article.body.trim().split(/\s+/).length;
 
   return (
@@ -164,7 +162,7 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
       <Card className="section-card reading-surface">
         <div className="flex-row justify-between mb-4 reading-tools">
           <span className="muted text-sm">
-            Chạm từ được gạch chân để tra nghĩa và thêm vào lịch ôn.
+            Rê chuột hoặc chạm vào từ để nghe và xem nghĩa. Chạm từ trong thư viện để xem chi tiết và lưu ôn tập.
           </span>
           <div className="flex-row">
             <AudioButton text={article.body} label="Nghe bài đọc" />
@@ -178,24 +176,14 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
           </div>
         </div>
         <article className="reading-body">
-          {translated
-            ? article.translation
-            : article.body.split(/(\s+)/).map((token, index) => {
-                const word = wordMap.get(
-                  token.toLowerCase().replace(/[^a-z]/g, ""),
-                );
-                return word ? (
-                  <button
-                    className="inline-word"
-                    key={index}
-                    onClick={() => setSelected(word)}
-                  >
-                    {token}
-                  </button>
-                ) : (
-                  <span key={index}>{token}</span>
-                );
-              })}
+          {translated ? article.translation : (
+            <InteractiveReadingText
+              text={article.body}
+              vocabulary={words || []}
+              vocabularyReady={!vocabularyLoading}
+              onSelect={(entry) => setSelected(wordMap.get(entry.id) || null)}
+            />
+          )}
         </article>
       </Card>
       <Dialog

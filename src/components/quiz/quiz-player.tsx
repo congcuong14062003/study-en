@@ -20,6 +20,8 @@ import { api } from "@/lib/utils";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/states";
 import { PageHeading } from "@/components/dashboard/dashboard";
 import { AudioPlayer } from "@/components/learning/audio-player";
+import { InteractiveReadingText } from "@/components/learning/interactive-reading-text";
+import type { GlossaryEntry } from "@/lib/reading-glossary";
 import type { PublicQuiz } from "@/services/content";
 export type QuizResult = {
   score: number;
@@ -85,6 +87,8 @@ export function QuizPlayer({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [result, setResult] = useState<QuizResult | null>(null);
+  const { data: vocabulary, loading: vocabularyLoading } = useData<GlossaryEntry[]>("/vocabulary?glossary=1");
+  const glossary = vocabulary || [];
   const q = quiz.questions[index];
   async function submit() {
     setBusy(true);
@@ -223,11 +227,12 @@ export function QuizPlayer({
         <Badge>
           {q.skill.toUpperCase()} · {q.level}
         </Badge>
-        {q.passage && <div className="quiz-passage">{q.passage}</div>}
+        <p className="quiz-word-hint">Rê chuột hoặc chạm vào từ để nghe phát âm và xem nghĩa.</p>
+        {q.passage && <div className="quiz-passage"><InteractiveReadingText text={q.passage} vocabulary={glossary} vocabularyReady={!vocabularyLoading} /></div>}
         {q.audioText && (
           <AudioPlayer text={q.audioText} title="Nghe để trả lời" />
         )}
-        <h2>{q.prompt}</h2>
+        <h2><InteractiveReadingText text={q.prompt} vocabulary={glossary} vocabularyReady={!vocabularyLoading} /></h2>
         <div className="quiz-options">
           {q.options.map((option, i) => (
             <button
@@ -236,8 +241,8 @@ export function QuizPlayer({
               onClick={() => setAnswers({ ...answers, [q.id]: i })}
               aria-pressed={answers[q.id] === i}
             >
-              <span>{String.fromCharCode(65 + i)}</span>
-              {option}
+              <span className="quiz-option-label">{String.fromCharCode(65 + i)}</span>
+              <span className="quiz-option-text"><InteractiveReadingText text={option} vocabulary={glossary} vocabularyReady={!vocabularyLoading} insideButton /></span>
               {answers[q.id] === i && <Check size={18} />}
             </button>
           ))}

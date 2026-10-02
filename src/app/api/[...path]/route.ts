@@ -26,6 +26,7 @@ import {
 import {
   chat,
   analyzeWriting,
+  translateReadingWord,
   getAIStatus,
   recommendLearning,
 } from "@/services/ai";
@@ -156,6 +157,13 @@ export async function GET(request: Request, { params }: Context) {
             include: { vocabulary: true },
             orderBy: { dueAt: "asc" },
             take: 50,
+          });
+          break;
+        }
+        if (!id && url.searchParams.get("glossary") === "1") {
+          data = await db.vocabulary.findMany({
+            select: { id: true, word: true, meaning: true, ipa: true, partOfSpeech: true },
+            orderBy: { word: "asc" },
           });
           break;
         }
@@ -716,6 +724,10 @@ async function mutate(request: Request, { params }: Context) {
       case "writing":
         if (id !== "analyze") throw new ApiError("Hành động không hợp lệ.");
         data = await analyzeWriting(user.id, raw);
+        break;
+      case "glossary":
+        if (id || request.method !== "POST") throw new ApiError("Hành động không hợp lệ.");
+        data = await translateReadingWord(user.id, raw);
         break;
       case "speaking": {
         const v = z

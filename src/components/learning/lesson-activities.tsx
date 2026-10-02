@@ -17,9 +17,12 @@ import { toast } from "sonner";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/utils";
+import { useData } from "@/hooks/use-data";
+import type { GlossaryEntry } from "@/lib/reading-glossary";
 import { insertSentenceToken, type SentenceToken } from "@/lib/sentence-order";
 import type { PublicQuiz } from "@/services/content";
 import { AudioButton, speak } from "./audio-player";
+import { InteractiveReadingText } from "./interactive-reading-text";
 
 function deterministicShuffle<T extends { id: string }>(items: T[]) {
   if (items.length < 2) return items;
@@ -354,6 +357,7 @@ export function ListeningCloze({ word, onComplete }: { word: Vocabulary; onCompl
 
 type LessonQuestion = PublicQuiz["questions"][number];
 export function ReadingQuestion({ lessonId, question, onComplete }: { lessonId: string; question: LessonQuestion; onComplete?: () => void }) {
+  const { data: vocabulary, loading: vocabularyLoading } = useData<GlossaryEntry[]>("/vocabulary?glossary=1");
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState<{ correct: boolean; correctAnswer: number; explanation: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -377,9 +381,9 @@ export function ReadingQuestion({ lessonId, question, onComplete }: { lessonId: 
     <Card className="activity-card reading-check">
       <div className="activity-heading">
         <span className="icon-box green"><CheckCircle2 size={21} /></span>
-        <div><Badge className="green">5 · ĐỌC HIỂU</Badge><h2>{question.prompt}</h2><p>Đọc thông tin rồi chọn đáp án phù hợp nhất.</p></div>
+        <div><Badge className="green">5 · ĐỌC HIỂU</Badge><h2><InteractiveReadingText text={question.prompt} vocabulary={vocabulary || []} vocabularyReady={!vocabularyLoading} /></h2><p>Rê chuột hoặc chạm vào từ để nghe phát âm và xem nghĩa, rồi chọn đáp án.</p></div>
       </div>
-      {question.passage && <p className="reading-check-passage">{question.passage}</p>}
+      {question.passage && <p className="reading-check-passage"><InteractiveReadingText text={question.passage} vocabulary={vocabulary || []} vocabularyReady={!vocabularyLoading} /></p>}
       <div className="quiz-options">
         {question.options.map((option, index) => (
           <button
@@ -389,7 +393,8 @@ export function ReadingQuestion({ lessonId, question, onComplete }: { lessonId: 
             onClick={() => { setSelected(index); setResult(null); }}
             aria-pressed={selected === index}
           >
-            <span>{String.fromCharCode(65 + index)}</span>{option}
+            <span className="quiz-option-label">{String.fromCharCode(65 + index)}</span>
+            <span className="quiz-option-text"><InteractiveReadingText text={option} vocabulary={vocabulary || []} vocabularyReady={!vocabularyLoading} insideButton /></span>
           </button>
         ))}
       </div>
