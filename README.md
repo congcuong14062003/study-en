@@ -102,9 +102,15 @@ pnpm start
 
 Hoặc dùng Dockerfile đi kèm và PostgreSQL được quản lý riêng. Cung cấp `DATABASE_URL`, `NEXTAUTH_URL` và `NEXTAUTH_SECRET` ở runtime; chạy `prisma migrate deploy` trước khi phục vụ người dùng. Thư mục `public/uploads` cần volume bền vững khi chạy một instance. Chuyển upload sang object storage trước khi chạy nhiều instance.
 
-Trên Vercel, cấu hình tối thiểu `DATABASE_URL`, `NEXTAUTH_SECRET`, `AI_PROVIDER=groq`, `GROQ_API_KEY` và `AI_MODEL=openai/gpt-oss-120b`. `NEXTAUTH_URL` có thể là domain production đầy đủ; nếu bị bỏ trống, build sẽ tự dùng `VERCEL_URL` của deployment. Không tạo biến Vercel với giá trị rỗng cho các secret bắt buộc.
+Trên Vercel, kết nối repository Git và chọn đúng **Production Branch** trong Project Settings. Chỉ khi commit được **push** lên nhánh đó, Vercel mới tự chạy build/deploy production; commit trên máy chưa kích hoạt Vercel. `vercel.json` dùng `pnpm run vercel-build`: tạo Prisma Client, chạy migration còn thiếu, cập nhật nội dung học từ `prisma/seed.ts` (không tạo tài khoản demo), nhập các từ còn thiếu từ `prisma/seed-vocabulary-5000.sql`, rồi build ứng dụng. Nếu bước nào lỗi, build dừng. Bước đồng bộ cơ sở dữ liệu chỉ chạy khi `VERCEL_ENV=production`; Preview không ghi vào database.
 
-Chưa triển khai lên Internet. Stack Node.js/PostgreSQL trong yêu cầu hiện chạy cục bộ; không chuyển sang SQLite hay Vinext để phù hợp Cloudflare Sites. Muốn publish cần host Node.js/container và PostgreSQL có thể truy cập từ host đó.
+Trong Vercel, đặt `DATABASE_URL` trỏ đến PostgreSQL production ở phạm vi **Production**, cùng `NEXTAUTH_SECRET`, `AI_PROVIDER=groq`, `GROQ_API_KEY` và `AI_MODEL=openai/gpt-oss-120b`. `NEXTAUTH_URL` có thể là domain production đầy đủ; nếu bỏ trống, build tự dùng `VERCEL_URL` của deployment. Không tạo biến Vercel với giá trị rỗng cho secret bắt buộc. Nếu dùng Preview, hãy dùng database Preview riêng và triển khai migration cho nó trước khi thử tính năng mới; không dùng chung `DATABASE_URL` production. Không đặt `DEMO_PASSWORD` trên production.
+
+Đây là đồng bộ **cấu trúc và nội dung học được lưu trong Git**, không sao chép toàn bộ database cục bộ lên production. Tài khoản, tiến độ, flashcard và bài làm của người dùng trên production được giữ lại. Migration production nên tương thích ngược với phiên bản đang chạy, vì database được cập nhật trước khi bản deploy mới hoạt động. Sao lưu database trước khi triển khai migration có thể thay đổi dữ liệu hiện có.
+
+Nếu database production đã có bảng được tạo thủ công hoặc bằng `prisma db push` mà chưa có lịch sử `_prisma_migrations`, cần baseline migration trước khi bật tự động triển khai; không chạy migration khởi tạo đè lên các bảng đang có.
+
+Các thiết lập trong repository không tự kết nối dự án với Vercel hoặc tạo PostgreSQL; cần hoàn tất các bước đó trong tài khoản Vercel trước lần deploy đầu tiên.
 
 ## Phạm vi MVP và phần cần hoàn thiện trước khi mở thương mại
 

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import * as content from "./content";
 import { extraCourses, extraLessons, extraVocabulary } from "./expanded-content";
@@ -36,7 +36,16 @@ async function main() {
     }
     for (const v of vocabulary) {
         const data = { ...v, imageUrl: vocabularyImages[v.id] ?? null };
-        await db.vocabulary.upsert({ where: { id: v.id }, create: data, update: data });
+        try {
+            await db.vocabulary.upsert({ where: { id: v.id }, create: data, update: data });
+        } catch (error) {
+            if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+            const imported = await db.vocabulary.findUnique({ where: { word: v.word }, select: { id: true } });
+            if (!imported?.id.startsWith("vocab-import-")) throw error;
+            if (await db.vocabulary.findUnique({ where: { id: v.id }, select: { id: true } })) throw error;
+            // Keep existing flashcards/reviews via the FK's ON UPDATE CASCADE.
+            await db.vocabulary.update({ where: { id: imported.id }, data: { ...data, id: v.id } });
+        }
     }
     for (const g of grammar)
         await db.grammarLesson.upsert({ where: { id: g.id }, create: g, update: g });
@@ -65,7 +74,8 @@ async function main() {
     }
     for (const [i, text] of ["I usually wake up at seven o'clock.", "Could I have a cup of coffee, please?", "I'd like to book a room for two nights.", "We should discuss the deadline at our next meeting.", "Learning a language opens the door to new possibilities."].entries())
         await db.speakingExercise.upsert({ where: { id: `speaking-${i + 1}` }, create: { id: `speaking-${i + 1}`, title: ["Daily routines", "At the coffee shop", "At the hotel", "In a meeting", "New possibilities"][i], level: i < 2 ? "A1" : i < 4 ? "A2" : "B1", text, tip: "Nghe cả câu, chú ý trọng âm và đọc theo từng cụm. Thử lại chậm hơn nếu cần." }, update: {} });
-    if (process.env.DEMO_PASSWORD) {
+    // Production deployments only sync shared learning content, never demo accounts or progress.
+    if (process.env.DEMO_PASSWORD && !process.argv.includes("--content-only") && process.env.VERCEL_ENV !== "production") {
         const passwordHash = await hash(process.env.DEMO_PASSWORD, 12);
         for (const email of ["demo@englishmaster.vn", "admin@englishmaster.vn"]) {
             const admin = email.startsWith("admin");

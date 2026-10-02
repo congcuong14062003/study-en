@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev --webpack --hostname localhost",
     "build": "prisma generate && prisma migrate deploy && next build --webpack",
+    "vercel-build": "prisma generate && node scripts/sync-production-data.mjs && next build --webpack",
     "start": "next start --hostname localhost",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
