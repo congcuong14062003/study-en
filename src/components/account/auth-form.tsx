@@ -60,21 +60,38 @@ export function AuthForm({
           password,
           confirmPassword: form.get("confirmPassword"),
         });
-        await api("/auth/register", {
+        const result = await api<{ emailSent: boolean }>("/auth/register", {
           method: "POST",
           body: JSON.stringify(values),
         });
+
+        sessionStorage.setItem("pendingVerificationEmail", email);
+        sessionStorage.setItem(
+          "verificationEmailSent",
+          result.emailSent ? "true" : "false",
+        );
+        router.push("/verify-email");
+        return;
       }
-      if (register || login) {
+      if (login) {
         const result = await signIn("credentials", {
           email,
           password,
           redirect: false,
         });
-        if (result?.error)
+        if (result?.error === "EMAIL_NOT_VERIFIED") {
+          sessionStorage.setItem("pendingVerificationEmail", email);
+          setError(
+            "Email chưa được xác thực. Hãy nhập mã đã gửi hoặc yêu cầu gửi lại.",
+          );
+          return;
+        }
+
+        if (result?.error) {
           throw new Error(
             "Email hoặc mật khẩu không đúng, hoặc bạn đã thử quá nhiều lần.",
           );
+        }
         const target = params.get("callbackUrl");
         const safeTarget = target
           ? new URL(target, window.location.origin)
@@ -333,6 +350,11 @@ export function AuthForm({
               <>
                 Bạn chưa có tài khoản?{" "}
                 <Link href="/register">Đăng ký miễn phí</Link>
+                <div className="mt-3">
+                  <Link href="/verify-email" className="text-link">
+                    Chưa nhận mã? Xác thực email
+                  </Link>
+                </div>
               </>
             ) : register ? (
               <>

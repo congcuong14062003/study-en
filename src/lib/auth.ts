@@ -39,7 +39,13 @@ export const authOptions: NextAuthOptions = {
           user?.passwordHash ||
             "$2b$12$0oPxFA2Fn8VnAyNBACbdUuTlhpjAA.JWDwaRh3Dq.jBYvUDxUZL4G",
         );
-        if (!user || !user.passwordHash || !valid || user.banned) return null;
+        if (!user || !user.passwordHash || !valid || user.banned) {
+          return null;
+        }
+
+        if (user.emailVerificationRequired && !user.emailVerified) {
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
         return {
           id: user.id,
           name: user.name,
@@ -73,7 +79,10 @@ export const authOptions: NextAuthOptions = {
       const current = await db.user.findUnique({
         where: { email: user.email || "" },
       });
-      return !current?.banned;
+      return (
+        !current?.banned &&
+        !(current?.emailVerificationRequired && !current.emailVerified)
+      );
     },
     async jwt({ token, user }) {
       if (user) {
@@ -125,6 +134,7 @@ export async function currentUser() {
   if (
     !user ||
     user.banned ||
+    (user.emailVerificationRequired && !user.emailVerified) ||
     user.sessionVersion !== session.user.sessionVersion
   )
     return null;

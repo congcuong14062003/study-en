@@ -12,6 +12,10 @@ import {
   rateLimit,
   clientRateLimit,
 } from "@/lib/security";
+import {
+  createVerificationCode,
+  hashVerificationCode,
+} from "@/lib/email-verification";
 export async function register(request: Request) {
   try {
     checkOrigin(request);
@@ -19,12 +23,45 @@ export async function register(request: Request) {
     await rateLimit("register:capacity", 1000, 3600);
     const values = registerSchema.parse(await readJson(request));
     await rateLimit(`register:${values.email}`, 4, 3600);
+    // const passwordHash = await hash(values.password, 12);
+    // const user = await db.user.create({
+    //   data: {
+    //     name: values.name,
+    //     email: values.email,
+    //     passwordHash,
+    //     profile: { create: {} },
+    //     progress: { create: {} },
+    //     subscription: { create: {} },
+    //     notifications: {
+    //       create: {
+    //         title: "Chào mừng đến với EnglishMaster",
+    //         body: "Hãy bắt đầu bằng một mục tiêu nhỏ và bài kiểm tra trình độ.",
+    //         type: "welcome",
+    //         href: "/onboarding",
+    //       },
+    //     },
+    //   },
+    //   select: { id: true, name: true, email: true },
+    // });
+    // return Response.json({ user }, { status: 201 });
+    if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) {
+      throw new ApiError("Chức năng gửi email chưa được cấu hình.", 503);
+    }
+    const code = createVerificationCode();
     const passwordHash = await hash(values.password, 12);
     const user = await db.user.create({
       data: {
         name: values.name,
         email: values.email,
         passwordHash,
+        emailVerificationRequired: true,
+        emailVerified: null,
+        emailVerificationCode: {
+          create: {
+            codeHash: hashVerificationCode(values.email, code),
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+          },
+        },
         profile: { create: {} },
         progress: { create: {} },
         subscription: { create: {} },
@@ -39,7 +76,48 @@ export async function register(request: Request) {
       },
       select: { id: true, name: true, email: true },
     });
-    return Response.json({ user }, { status: 201 });
+    // Send verification email
+    let emailSent = true;
+    try {
+      const transport = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: process.env.SMTP_PORT === "465",
+        auth: process.env.SMTP_USER
+          ? {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASSWORD,
+            }
+          : undefined,
+      });
+
+      // console.log("Sending verification email to:", user.email);
+      // console.log("Verification code:", code);
+      await transport.sendMail({
+        from: process.env.SMTP_FROM,
+        to: user.email,
+        subject: "Mã xác thực EnglishMaster",
+        text: `Mã xác thực của bạn là ${code}. Mã có hiệu lực trong 10 phút. Nếu không đăng ký tài khoản, hãy bỏ qua email này.`,
+      });
+    } catch (error) {
+      emailSent = false;
+      await db.emailVerificationCode.updateMany({
+        where: {
+          userId: user.id,
+          codeHash: hashVerificationCode(user.email, code),
+        },
+        data: { sentAt: new Date(0) },
+      });
+      console.error(
+        "Không gửi được email xác thực:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+
+    return Response.json(
+      { user, verificationRequired: true, emailSent },
+      { status: 201 },
+    );
   } catch (e) {
     return errorResponse(e);
   }
