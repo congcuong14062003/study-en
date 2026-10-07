@@ -1,0 +1,5 @@
+# Vocabulary data attribution
+
+The generated vocabulary SQL files in `prisma/` combine English headwords, definitions, CEFR labels, and frequency rankings from [Openjam](https://github.com/amirj4m/openjam) (MIT) with Vietnamese meanings, IPA, and example sentences from [Skypedia's English–Vietnamese Dictionary](https://github.com/skypediacode/english-vietnamese-dictionary) (CC BY-SA 4.0). The latter is derived from the [MinhQND Dictionary](https://github.com/minhqnd/dictionary) and acknowledges Wiktionary, vntk/dictionary, Hồ Ngọc Đức's Vietnamese Dictionary Project, and OVDP. See the [source attribution](https://github.com/skypediacode/english-vietnamese-dictionary/blob/main/ATTRIBUTION.md) and [license](https://github.com/skypediacode/english-vietnamese-dictionary/blob/main/LICENSE) for full upstream credits and redistribution terms.
+
+The combined and reformatted vocabulary dataset is distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Please retain this attribution when redistributing the SQL files or data derived from them.

@@ -29,5 +29,5 @@ test("production requires a database URL", () => {
 test("production syncs migrations, shared content, then vocabulary", () => {
   const result = dryRun("production", "postgresql://example.invalid/production");
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /migrations[\s\S]*shared learning content[\s\S]*vocabulary/i);
+  assert.match(result.stdout, /migrations[\s\S]*shared learning content[\s\S]*missing vocabulary[\s\S]*3,000 additional vocabulary/i);
 });

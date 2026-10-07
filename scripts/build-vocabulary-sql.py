@@ -2,21 +2,24 @@
 
 Usage (run from the project root):
   python scripts/build-vocabulary-sql.py <openjam-dir> <dictionary-sqlite> <output-sql>
+
+For a non-overlapping extension, pass --count, one or more --exclude-sql files,
+and --unambiguous-only to keep entries with one aligned sense in both sources.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import hashlib
 import re
 import sqlite3
-import sys
 from collections import defaultdict
 from pathlib import Path
 
 
-TARGET_SIZE = 5000
 WORD_PATTERN = re.compile(r"^[a-z]+(?:[-'][a-z]+)*$")
+SQL_WORD_PATTERN = re.compile(r"^\s*\('[^']+', '((?:[^']|'')+)'", re.MULTILINE)
 
 
 def clean(value: object) -> str:
@@ -27,6 +30,32 @@ def sql_literal(value: str | None) -> str:
     if value is None:
         return "NULL"
     return "'" + value.replace("'", "''") + "'"
+
+
+def imported_words(paths: list[Path]) -> set[str]:
+    words: set[str] = set()
+    for path in paths:
+        sql = path.read_text(encoding="utf-8")
+        words.update(match.replace("''", "'").lower() for match in SQL_WORD_PATTERN.findall(sql))
+    return words
+
+
+def unambiguous_dictionary_words(database_path: Path) -> dict[str, str]:
+    connection = sqlite3.connect(database_path)
+    try:
+        return {
+            word: pos
+            for word, pos in connection.execute("""
+                SELECT lower(w.word), min(coalesce(d.pos, ''))
+                FROM words w
+                JOIN word_definitions wd ON wd.word_id = w.id
+                JOIN definitions d ON d.id = wd.definition_id
+                GROUP BY lower(w.word)
+                HAVING count(DISTINCT wd.id) = 1
+            """)
+        }
+    finally:
+        connection.close()
 
 
 def dictionary_rows(database_path: Path, words: list[str]) -> dict[str, tuple[str, str, str, str]]:
@@ -56,12 +85,28 @@ def dictionary_rows(database_path: Path, words: list[str]) -> dict[str, tuple[st
 
 
 def main() -> None:
-    if len(sys.argv) != 4:
-        raise SystemExit("Usage: build-vocabulary-sql.py <openjam-dir> <dictionary-sqlite> <output-sql>")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("openjam", type=Path)
+    parser.add_argument("dictionary", type=Path)
+    parser.add_argument("output", type=Path)
+    parser.add_argument("--count", type=int, default=5000)
+    parser.add_argument("--exclude-sql", type=Path, action="append", default=[])
+    parser.add_argument("--unambiguous-only", action="store_true", help="Require one sense and a matching dictionary part of speech")
+    args = parser.parse_args()
+    if args.count < 1:
+        parser.error("--count must be positive")
 
-    openjam = Path(sys.argv[1])
-    dictionary = Path(sys.argv[2])
-    output = Path(sys.argv[3])
+    openjam = args.openjam
+    dictionary = args.dictionary
+    output = args.output
+    excluded = imported_words(args.exclude_sql)
+    unambiguous = unambiguous_dictionary_words(dictionary) if args.unambiguous_only else {}
+    matching_pos = {
+        "noun": {"N", "noun"},
+        "verb": {"V", "verb"},
+        "adjective": {"A", "adj"},
+        "adverb": {"D", "adv"},
+    }
     words_data = json.loads((openjam / "data" / "json" / "words_en.json").read_text(encoding="utf-8"))
     phonetics_data = json.loads((openjam / "data" / "json" / "phonetics.json").read_text(encoding="utf-8"))
     categories_data = json.loads((openjam / "data" / "json" / "categories.json").read_text(encoding="utf-8"))
@@ -83,6 +128,15 @@ def main() -> None:
         if WORD_PATTERN.fullmatch(clean(item.get("english")).lower())
         and clean(item.get("level")) in {"A1", "A2", "B1", "B2", "C1", "C2"}
         and item.get("senses")
+        and clean(item.get("english")).lower() not in excluded
+        and (
+            not args.unambiguous_only
+            or (
+                len(item["senses"]) == 1
+                and unambiguous.get(clean(item["english"]).lower())
+                in matching_pos.get(clean(item["senses"][0].get("part_of_speech")), set())
+            )
+        )
     ]
     translation_map = dictionary_rows(dictionary, [clean(item["english"]).lower() for item in candidates])
 
@@ -95,7 +149,11 @@ def main() -> None:
         meaning, dictionary_pos, dictionary_example, dictionary_ipa = translation_map[word]
         sense = item["senses"][0]
         definition = clean(sense.get("definition_en"))
-        example = clean(sense.get("example_en")) or dictionary_example or f"Learn how to use {word} in a complete sentence."
+        example = (
+            (dictionary_example or clean(sense.get("example_en")))
+            if args.unambiguous_only
+            else (clean(sense.get("example_en")) or dictionary_example)
+        ) or f"Learn how to use {word} in a complete sentence."
         if not definition:
             continue
         used.add(word)
@@ -111,16 +169,16 @@ def main() -> None:
             "category": category_by_word.get(item["id"]) or "High-frequency English",
             "level": clean(item["level"]),
         })
-        if len(records) == TARGET_SIZE:
+        if len(records) == args.count:
             break
 
-    if len(records) < TARGET_SIZE:
-        raise RuntimeError(f"Only found {len(records)} importable entries; expected {TARGET_SIZE}.")
+    if len(records) < args.count:
+        raise RuntimeError(f"Only found {len(records)} importable entries; expected {args.count}.")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        "-- EnglishMaster vocabulary import: 5,000 high-frequency English entries.",
-        "-- Generated by scripts/build-vocabulary-sql.py on 2026-09-22.",
+        f"-- EnglishMaster vocabulary import: {len(records):,} additional English entries.",
+        "-- Generated by scripts/build-vocabulary-sql.py.",
         "-- Sources: Openjam (MIT, https://github.com/amirj4m/openjam) for CEFR/English definitions;",
         "-- English-Vietnamese Dictionary by Skypedia (CC BY-SA 4.0, https://github.com/skypediacode/english-vietnamese-dictionary)",
         "-- for Vietnamese meanings, IPA and example fallback. Keep this attribution with derived data.",

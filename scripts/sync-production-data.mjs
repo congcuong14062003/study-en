@@ -20,6 +20,7 @@ const steps = [
   ["Apply pending migrations", prismaCli, ["migrate", "deploy"]],
   ["Sync shared learning content", tsxCli, ["prisma/seed.ts", "--content-only"]],
   ["Import missing vocabulary", prismaCli, ["db", "execute", "--schema", "prisma/schema.prisma", "--file", "prisma/seed-vocabulary-5000.sql"]],
+  ["Import 3,000 additional vocabulary entries", prismaCli, ["db", "execute", "--schema", "prisma/schema.prisma", "--file", "prisma/seed-vocabulary-additional-3000.sql"]],
 ];
 
 for (const [label, cli, args] of steps) {
