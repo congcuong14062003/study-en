@@ -58,8 +58,8 @@ export async function verifyEmail(request: Request) {
 
     await rateLimit(`verify-email:${email}`, 10, 60);
 
-    const user = await db.user.findUnique({
-      where: { email },
+    const user = await db.user.findFirst({
+      where: { email, passwordHash: { not: null } },
       select: {
         id: true,
         email: true,
@@ -142,8 +142,8 @@ export async function resendVerificationEmail(request: Request) {
       throw new ApiError("Chức năng gửi email chưa được cấu hình.", 503);
     }
 
-    const user = await db.user.findUnique({
-      where: { email },
+    const user = await db.user.findFirst({
+      where: { email, passwordHash: { not: null } },
       select: {
         id: true,
         email: true,

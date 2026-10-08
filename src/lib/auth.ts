@@ -3,12 +3,39 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import type { Adapter, AdapterAccount } from "next-auth/adapters";
 import { compare } from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
 import { ApiError, rateLimit, clientRateLimit } from "./security";
+import { canAttachFirstOAuthAccount } from "./independent-auth";
+
+const independentProviderAdapter: Adapter = {
+  ...PrismaAdapter(db),
+  // No email sign-in provider is configured. OAuth identities must be resolved
+  // by provider/account ID, never by an email shared with another user.
+  async getUserByEmail() {
+    return null;
+  },
+  async linkAccount(account: AdapterAccount) {
+    const owner = await db.user.findUnique({
+      where: { id: account.userId },
+      select: {
+        passwordHash: true,
+        accounts: { select: { id: true }, take: 1 },
+      },
+    });
+    // NextAuth otherwise links a new OAuth provider to an active session.
+    // Each provider must have its own User, including when already signed in.
+    if (!canAttachFirstOAuthAccount(owner)) {
+      throw new Error("Independent sign-in methods cannot be linked.");
+    }
+    return db.account.create({ data: account });
+  },
+};
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db),
+  adapter: independentProviderAdapter,
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login", error: "/login" },
@@ -31,8 +58,11 @@ export const authOptions: NextAuthOptions = {
         await clientRateLimit(request.headers || {}, "login", 40, 900);
         await rateLimit("login:capacity", 2000, 900);
         await rateLimit(`login:${parsed.data.email}`, 8, 900);
-        const user = await db.user.findUnique({
-          where: { email: parsed.data.email },
+        const user = await db.user.findFirst({
+          where: {
+            email: parsed.data.email,
+            passwordHash: { not: null },
+          },
         });
         const valid = await compare(
           parsed.data.password,
@@ -75,10 +105,19 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
-    async signIn({ user }) {
-      const current = await db.user.findUnique({
-        where: { email: user.email || "" },
-      });
+    async signIn({ user, account, profile }) {
+      if (
+        process.env.NODE_ENV === "development" &&
+        account?.provider === "facebook"
+      ) {
+        const facebookProfile = profile as
+          | { id?: string; name?: string; email?: string; picture?: unknown }
+          | undefined;
+        console.info("[auth][facebook] profile received: ", profile);
+      }
+      const current = user.id
+        ? await db.user.findUnique({ where: { id: user.id } })
+        : null;
       return (
         !current?.banned &&
         !(current?.emailVerificationRequired && !current.emailVerified)

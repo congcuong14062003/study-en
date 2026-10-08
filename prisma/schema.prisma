@@ -13,7 +13,9 @@ enum Role {
 model User {
   id String @id @default(cuid())
   name String?
-  email String @unique
+  // An email may belong to independent password, Google, and Facebook users.
+  // Password users remain unique per email through a partial SQL index.
+  email String
   emailVerified DateTime?
   emailVerificationRequired Boolean @default(false)
   emailVerificationCode     EmailVerificationCode?
@@ -45,6 +47,8 @@ model User {
   learningPlan LearningPlan?
   progress UserProgress?
   writingSubmissions WritingSubmission[]
+
+  @@index([email])
 }
 model EmailVerificationCode {
   id        String   @id @default(cuid())

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/layout/brand";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { api } from "@/lib/utils";
+import { authRedirectErrorMessage } from "@/lib/auth-redirect-error";
 import { registerSchema } from "@/lib/validation";
 export function AuthForm({
   mode,
@@ -31,6 +32,8 @@ export function AuthForm({
     [config, setConfig] = useState({ google: false, facebook: false });
   const register = mode === "register",
     login = mode === "login";
+  const redirectError =
+    login || register ? authRedirectErrorMessage(params.get("error")) : "";
   useEffect(() => {
     api<typeof config>("/config")
       .then(setConfig)
@@ -195,6 +198,11 @@ export function AuthForm({
                 ? "Tiếp tục hành trình tiếng Anh của bạn hôm nay."
                 : "Chúng tôi sẽ giúp bạn trở lại hành trình học tập."}
           </p>
+          {redirectError && !error && (
+            <p className="error-message" role="alert">
+              {redirectError}
+            </p>
+          )}
           {(login || register) && (config.google || config.facebook) && (
             <>
               <div className="oauth-buttons">

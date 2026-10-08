@@ -96,7 +96,7 @@ async function main() {
       emailVerified: dateAgo(45 - (index % 20)),
     };
     await db.user.upsert({
-      where: { email: `seed.student.${suffix}@englishmaster.test` },
+      where: { id: userId },
       create: {
         id: userId,
         email: `seed.student.${suffix}@englishmaster.test`,

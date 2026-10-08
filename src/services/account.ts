@@ -136,7 +136,11 @@ export async function forgotPassword(request: Request) {
         "Email khôi phục chưa được thiết lập. Vui lòng liên hệ quản trị viên.",
         503,
       );
-    const user = await db.user.findUnique({ where: { email } });
+    // A Google/Facebook user may share this email, but cannot reset the
+    // independent password account unless one actually exists.
+    const user = await db.user.findFirst({
+      where: { email, passwordHash: { not: null } },
+    });
     if (user && !user.banned) {
       const token = randomBytes(32).toString("hex");
       const tokenHash = createHash("sha256").update(token).digest("hex");

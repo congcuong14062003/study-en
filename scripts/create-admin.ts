@@ -9,7 +9,12 @@ async function main() {
     const password = passwordSchema.parse(process.env.ADMIN_PASSWORD);
     const name = process.env.ADMIN_NAME || "EnglishMaster Admin";
     const passwordHash = await hash(password, 12);
-    await db.user.upsert({ where: { email }, create: { email, name, passwordHash, role: "ADMIN", profile: { create: { onboardingComplete: true, placementComplete: true } }, progress: { create: {} }, subscription: { create: {} } }, update: { role: "ADMIN", passwordHash, sessionVersion: { increment: 1 } } });
+    const existing = await db.user.findFirst({ where: { email, passwordHash: { not: null } } });
+    if (existing) {
+        await db.user.update({ where: { id: existing.id }, data: { role: "ADMIN", passwordHash, sessionVersion: { increment: 1 } } });
+    } else {
+        await db.user.create({ data: { email, name, passwordHash, role: "ADMIN", profile: { create: { onboardingComplete: true, placementComplete: true } }, progress: { create: {} }, subscription: { create: {} } } });
+    }
     console.log("Administrator created or updated. Existing sessions revoked.");
 }
 main().catch(e => {

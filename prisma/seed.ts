@@ -79,9 +79,10 @@ async function main() {
         const passwordHash = await hash(process.env.DEMO_PASSWORD, 12);
         for (const email of ["demo@englishmaster.vn", "admin@englishmaster.vn"]) {
             const admin = email.startsWith("admin");
-            await db.user.upsert({ where: { email }, create: { email, name: admin ? "Quản trị EnglishMaster" : "Nguyễn Văn Anh", passwordHash, role: admin ? "ADMIN" : "USER", profile: { create: { level: "B1", goal: "Giao tiếp", onboardingComplete: true, placementComplete: true, publicLeaderboard: !admin } }, progress: { create: {} }, subscription: { create: {} }, learningPlan: { create: { goal: "Giao tiếp", level: "B1", weeks: [{ week: 1, topic: "Daily routines" }, { week: 2, topic: "Family & friends" }, { week: 3, topic: "Work & study" }, { week: 4, topic: "Travel & experiences" }] } } }, update: {} });
+            const existing = await db.user.findFirst({ where: { email, passwordHash: { not: null } } });
+            if (!existing) await db.user.create({ data: { email, name: admin ? "Quản trị EnglishMaster" : "Nguyễn Văn Anh", passwordHash, role: admin ? "ADMIN" : "USER", profile: { create: { level: "B1", goal: "Giao tiếp", onboardingComplete: true, placementComplete: true, publicLeaderboard: !admin } }, progress: { create: {} }, subscription: { create: {} }, learningPlan: { create: { goal: "Giao tiếp", level: "B1", weeks: [{ week: 1, topic: "Daily routines" }, { week: 2, topic: "Family & friends" }, { week: 3, topic: "Work & study" }, { week: 4, topic: "Travel & experiences" }] } } } });
         }
-        const demo = await db.user.findUniqueOrThrow({ where: { email: "demo@englishmaster.vn" } });
+        const demo = await db.user.findFirstOrThrow({ where: { email: "demo@englishmaster.vn", passwordHash: { not: null } } });
         const already = await db.courseEnrollment.count({ where: { userId: demo.id } });
         if (!already) {
             await db.courseEnrollment.create({ data: { userId: demo.id, courseId: "english-a2" } });
