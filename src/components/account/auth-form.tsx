@@ -89,7 +89,6 @@ export function AuthForm({
           );
           return;
         }
-
         if (result?.error) {
           throw new Error(
             "Email hoặc mật khẩu không đúng, hoặc bạn đã thử quá nhiều lần.",
