@@ -10,6 +10,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Layers,
   RotateCcw,
   Sparkles,
@@ -74,6 +75,16 @@ export function VocabularyCard({
   onRemove?: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  async function copyText(text: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`Đã sao chép ${label}`);
+    } catch {
+      toast.error(
+        "Không thể sao chép. Hãy kiểm tra quyền clipboard của trình duyệt.",
+      );
+    }
+  }
   async function review(rating: string) {
     setBusy(true);
     try {
@@ -136,7 +147,20 @@ export function VocabularyCard({
         />
       </div>
       <div className="word-title">
-        <h2>{word.word}</h2>
+        <div className="word-title-text">
+          <h2>{word.word}</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="word-copy-button"
+            aria-label={`Sao chép từ ${word.word}`}
+            title="Sao chép từ vựng"
+            onClick={() => void copyText(word.word, "từ vựng")}
+          >
+            <Copy size={15} />
+          </Button>
+        </div>
         <AudioButton text={word.word} />
       </div>
       <div className="word-ipa">
@@ -154,7 +178,20 @@ export function VocabularyCard({
         />
       )}
       <div className="word-example">
-        <span className="word-example-label">Câu ví dụ · Bản dịch</span>
+        <div className="word-example-header">
+          <span className="word-example-label">Câu ví dụ · Bản dịch</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="word-copy-button"
+            aria-label={`Sao chép câu ví dụ của từ ${word.word}`}
+            title="Sao chép câu ví dụ"
+            onClick={() => void copyText(word.example, "câu ví dụ")}
+          >
+            <Copy size={15} />
+          </Button>
+        </div>
         <p>“{word.example}”</p>
         <span>{word.translation}</span>
       </div>

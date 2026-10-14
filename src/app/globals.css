@@ -3425,11 +3425,27 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 18px;
+}
+.word-title-text {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
 }
 .word-title h2 {
   font-size: 27px;
   letter-spacing: -1px;
+  overflow-wrap: anywhere;
+}
+.word-copy-button {
+  flex: none;
+  color: var(--muted);
+}
+.word-copy-button:hover {
+  color: var(--primary);
 }
 .word-ipa {
   color: var(--muted);
@@ -3461,6 +3477,13 @@ input[type="checkbox"] {
   border-radius: 8px;
   margin-block: 18px;
 }
+.word-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
 .word-example > p {
   font-size: 12px;
   line-height: 1.8;
@@ -3472,8 +3495,7 @@ input[type="checkbox"] {
   color: var(--muted);
   margin-top: 6px;
 }
-.word-example > .word-example-label {
-  margin: 0 0 6px;
+.word-example-header .word-example-label {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
