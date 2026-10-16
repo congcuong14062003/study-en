@@ -3502,6 +3502,24 @@ input[type="checkbox"] {
   text-transform: uppercase;
   color: var(--primary);
 }
+.example-sentence-translation {
+  display: block;
+  line-height: 1.7;
+}
+.word-example > .example-sentence-translation {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text);
+}
+.example-translation-label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+}
 .word-relations {
   display: flex;
   flex-wrap: wrap;

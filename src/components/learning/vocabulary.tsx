@@ -35,6 +35,7 @@ import { MotionGrid, MotionItem } from "@/components/ui/motion";
 import { Pagination } from "@/components/ui/pagination";
 import type { PaginatedResponse } from "@/lib/pagination";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
 export type Word = Vocabulary & {
   review?: UserVocabulary | null;
 };
@@ -179,7 +180,7 @@ export function VocabularyCard({
       )}
       <div className="word-example">
         <div className="word-example-header">
-          <span className="word-example-label">Câu ví dụ · Bản dịch</span>
+          <span className="word-example-label">Câu ví dụ tiếng Anh</span>
           <Button
             type="button"
             variant="ghost"
@@ -193,7 +194,7 @@ export function VocabularyCard({
           </Button>
         </div>
         <p>“{word.example}”</p>
-        <span>{word.translation}</span>
+        <VocabularyExampleTranslation word={word} />
       </div>
       <WordRelations word={word} />
       <div className="word-actions">
@@ -544,7 +545,12 @@ export function Flashcards() {
             )}
             <strong>{word.meaning}</strong>
             <span className="flashcard-example">“{word.example}”</span>
-            <span className="flashcard-translation">{word.translation}</span>
+            <VocabularyExampleTranslation
+              word={word}
+              active={flipped}
+              retryable={false}
+              className="flashcard-translation"
+            />
             <WordRelations word={word} />
           </span>
         </span>

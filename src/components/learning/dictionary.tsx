@@ -9,6 +9,7 @@ import { LoadingSkeleton, ErrorState } from "@/components/ui/states";
 import { AudioButton } from "./audio-player";
 import { FavoriteButton } from "./favorite-button";
 import type { Word } from "./vocabulary";
+import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
 export function Dictionary() {
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") || ""),
@@ -140,7 +141,7 @@ export function Dictionary() {
           <p className="mt-4">{selected.definition}</p>
           <div className="word-example">
             <p>{selected.example}</p>
-            <span>{selected.translation}</span>
+            <VocabularyExampleTranslation word={selected} />
           </div>
           <div className="grid-2">
             {[

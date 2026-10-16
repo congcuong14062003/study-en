@@ -27,6 +27,7 @@ import {
   chat,
   analyzeWriting,
   translateReadingWord,
+  translateVocabularyExample,
   getAIStatus,
   recommendLearning,
 } from "@/services/ai";
@@ -561,6 +562,10 @@ async function mutate(request: Request, { params }: Context) {
       case "vocabulary": {
         if (request.method === "DELETE" && id && !action) {
           data = await removeVocabulary(user.id, id);
+          break;
+        }
+        if (id && action === "translate-example" && request.method === "POST") {
+          data = await translateVocabularyExample(user.id, id);
           break;
         }
         if (id === "start") {

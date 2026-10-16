@@ -23,6 +23,7 @@ import { insertSentenceToken, type SentenceToken } from "@/lib/sentence-order";
 import type { PublicQuiz } from "@/services/content";
 import { AudioButton, speak } from "./audio-player";
 import { InteractiveReadingText } from "./interactive-reading-text";
+import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
 
 function deterministicShuffle<T extends { id: string }>(items: T[]) {
   if (items.length < 2) return items;
@@ -349,7 +350,7 @@ export function ListeningCloze({ word, onComplete }: { word: Vocabulary; onCompl
         />
         <Button type="submit" disabled={!answer.trim()}>Kiểm tra <Check size={15} /></Button>
       </form>
-      {result === "correct" && <div className="activity-success"><CheckCircle2 size={18} /> Chính xác! {word.example}<small>{word.translation}</small></div>}
+      {result === "correct" && <div className="activity-success"><CheckCircle2 size={18} /> Chính xác! {word.example}<small><VocabularyExampleTranslation word={word} /></small></div>}
       {result === "wrong" && <div className="activity-feedback error"><X size={18} /> Chưa đúng, nghe lại và thử thêm lần nữa nhé.</div>}
     </Card>
   );

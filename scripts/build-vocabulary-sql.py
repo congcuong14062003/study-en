@@ -165,7 +165,9 @@ def main() -> None:
             "definition": definition,
             "partOfSpeech": clean(sense.get("part_of_speech")) or dictionary_pos or "word",
             "example": example,
-            "translation": f"Nghĩa trong ngữ cảnh: {meaning}",
+            # A dictionary gloss is not a translation of the complete example.
+            # Missing sentence translations are generated and cached by the app.
+            "translation": "",
             "category": category_by_word.get(item["id"]) or "High-frequency English",
             "level": clean(item["level"]),
         })
