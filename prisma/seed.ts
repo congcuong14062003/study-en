@@ -10,8 +10,13 @@ import { topicVocabulary } from "./topic-vocabulary";
 import { immersiveListening, immersiveReading } from "./immersive-content";
 import { buildLearningPathLessons } from "./path-content";
 import { c2Courses, c2Grammar, c2Lessons, c2Listening, c2Questions, c2Reading, c2Vocabulary } from "./c2-content";
+import { examPapers } from "./exam-content";
 const db = new PrismaClient();
 async function main() {
+    for (const paper of examPapers) {
+        const data = { ...paper, questions: paper.questions as unknown as Prisma.InputJsonValue, published: true };
+        await db.examPaper.upsert({ where: { id: paper.id }, create: data, update: data });
+    }
     const courses = [...content.courses, ...extraCourses, ...c2Courses];
     const baseLessons = [...content.lessons, ...extraLessons, ...c2Lessons];
     const lessons = [...baseLessons, ...buildLearningPathLessons(courses, baseLessons)];

@@ -43,6 +43,7 @@ export type ShellUser = {
   name: string | null;
   email: string;
   role: string;
+  premiumActive?: boolean;
   profile?: {
     level: string;
   } | null;
@@ -55,8 +56,10 @@ const learningLinks = [
   { href: "/speaking", label: "Luyện nói", icon: Mic },
   { href: "/reading", label: "Luyện đọc", icon: BookOpen },
   { href: "/writing", label: "Luyện viết", icon: PenLine },
+  { href: "/exams", label: "Luyện đề TOEIC / IELTS", icon: FileQuestion },
 ];
 const personalLinks = [
+  { href: "/billing", label: "Gói học & thanh toán", icon: CreditCard },
   { href: "/favorites", label: "Đã lưu", icon: Heart },
   { href: "/notes", label: "Ghi chú", icon: NotebookPen },
   { href: "/calendar", label: "Lịch học", icon: CalendarDays },
@@ -128,7 +131,7 @@ export function AppShell({
       { href: "/study-plan", label: "Lộ trình học" },
       { href: "/achievements", label: "Thành tích" },
       { href: "/profile", label: "Hồ sơ cá nhân" },
-    ].find((l) => l.href === pathname)?.label || "Không gian học tập";
+    ].find((l) => l.href === pathname || (l.href === "/exams" && pathname.startsWith("/exams/")))?.label || "Không gian học tập";
   return (
     <>
       <aside className="sidebar">
@@ -200,7 +203,7 @@ export function AppShell({
             <strong>{user?.name || "Khách tham quan"}</strong>
             <small>
               {user
-                ? `${user.profile?.level || "A1"} · Tài khoản ${user.role === "PREMIUM" ? "Premium" : "Free"}`
+                ? `${user.profile?.level || "A1"} · Tài khoản ${user.premiumActive ? "Premium" : user.role === "ADMIN" ? "Admin" : "Free"}`
                 : "Bắt đầu hành trình của bạn"}
             </small>
           </div>
@@ -266,13 +269,14 @@ export function AppShell({
           { href: "/dashboard", label: "Trang chủ", icon: LayoutDashboard },
           { href: "/courses", label: "Học tập", icon: BookOpen },
           { href: "/vocabulary", label: "Luyện tập", icon: Layers },
+          { href: "/exams", label: "Luyện đề", icon: FileQuestion },
           { href: "/ai-tutor", label: "AI Tutor", icon: Sparkles },
           { href: "/profile", label: "Cá nhân", icon: Users },
         ].map(({ href, label, icon: Icon }) => (
           <Link
             href={href}
             key={href}
-            className={pathname === href ? "active" : ""}
+            className={pathname === href || (href === "/exams" && pathname.startsWith("/exams/")) ? "active" : ""}
           >
             <Icon />
             {label}

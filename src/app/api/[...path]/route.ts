@@ -34,6 +34,8 @@ import {
 import { adminRead, adminWrite } from "@/services/admin";
 import { finishStudy } from "@/services/study-time";
 import { paginationMeta, readPagination } from "@/lib/pagination";
+import { examCatalog, readExamAttempt, saveExamAnswers, startExam, submitExam } from "@/services/exams";
+import { examModeSchema } from "@/lib/exams";
 import type { Prisma } from "@prisma/client";
 type Context = {
   params: Promise<{
@@ -47,6 +49,18 @@ export async function GET(request: Request, { params }: Context) {
     const url = new URL(request.url);
     let data: unknown;
     switch (resource) {
+      case "exams": {
+        const user = await requireUser();
+        if (id) throw new ApiError("API không tồn tại.", 404);
+        data = await examCatalog(user.id);
+        break;
+      }
+      case "exam-attempts": {
+        const user = await requireUser();
+        if (!id || action) throw new ApiError("API không tồn tại.", 404);
+        data = await readExamAttempt(user.id, id);
+        break;
+      }
       case "health":
         await db.$queryRaw`SELECT 1`;
         data = { status: "ok", database: "postgresql" };
@@ -468,12 +482,28 @@ async function mutate(request: Request, { params }: Context) {
   try {
     checkOrigin(request);
     const user = await requireUser();
-    await rateLimit(`mutation:${user.id}`, 100, 60);
     const { path } = await params;
     const [resource, id, action] = path;
+    await rateLimit(`${resource === "exam-attempts" ? "exam-mutation" : "mutation"}:${user.id}`, resource === "exam-attempts" ? 240 : 100, 60);
     const raw = request.method === "DELETE" ? {} : await readJson(request);
     let data: unknown;
     switch (resource) {
+      case "exams": {
+        if (!id || action !== "start" || request.method !== "POST") throw new ApiError("Hành động không hợp lệ.", 405);
+        const { mode } = z.object({ mode: examModeSchema }).parse(raw);
+        data = await startExam(user.id, id, mode);
+        break;
+      }
+      case "exam-attempts": {
+        if (!id) throw new ApiError("Không tìm thấy lượt làm bài.", 404);
+        if (action === "answers" && request.method === "PUT") {
+          const { answers } = z.object({ answers: z.unknown() }).parse(raw);
+          data = await saveExamAnswers(user.id, id, answers);
+        } else if (action === "submit" && request.method === "POST") {
+          data = await submitExam(user.id, id);
+        } else throw new ApiError("Hành động không hợp lệ.", 405);
+        break;
+      }
       case "onboarding": {
         const values = onboardingSchema.parse(raw);
         data = await db.$transaction(async (tx) => {
@@ -756,4 +786,4 @@ async function mutate(request: Request, { params }: Context) {
     return errorResponse(e);
   }
 }
-export { mutate as POST, mutate as PATCH, mutate as DELETE };
+export { mutate as POST, mutate as PUT, mutate as PATCH, mutate as DELETE };

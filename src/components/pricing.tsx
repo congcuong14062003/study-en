@@ -2,31 +2,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Crown, Sparkles } from "lucide-react";
-import { toast } from "sonner";
 import { Navbar } from "./layout/navbar";
 import { Footer } from "./layout/footer";
 import { Card, Badge } from "./ui/card";
 import { Button } from "./ui/button";
-import { api } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
+import { useData } from "@/hooks/use-data";
+import type { BillingSettings } from "@/lib/billing";
 export function Pricing() {
-  const [yearly, setYearly] = useState(false),
-    [busy, setBusy] = useState(false);
-  async function interest() {
-    setBusy(true);
-    try {
-      await api("/subscription/interest", {
-        method: "POST",
-        body: JSON.stringify({ period: yearly ? "yearly" : "monthly" }),
-      });
-      toast.success(
-        "Đã lưu sự quan tâm của bạn. Bạn có thể tiếp tục học với gói Free.",
-      );
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const [yearly, setYearly] = useState(false);
+  const { data: config } = useData<BillingSettings>("/billing/config");
   return (
     <>
       <Navbar />
@@ -46,7 +31,7 @@ export function Pricing() {
               className={yearly ? "active" : ""}
               onClick={() => setYearly(true)}
             >
-              Hằng năm <Badge>Tiết kiệm 25%</Badge>
+              Hằng năm
             </button>
           </div>
         </div>
@@ -88,16 +73,14 @@ export function Pricing() {
             <h2>Premium</h2>
             <p>Thêm phản hồi, thêm tự tin.</p>
             <div className="price">
-              {yearly ? "149.000₫" : "199.000₫"}
-              <span>/ tháng</span>
+              {config ? `${formatNumber(yearly ? config.yearlyAmount : config.monthlyAmount)}₫` : "Đang cập nhật"}
+              <span>/ {yearly ? "12 tháng" : "tháng"}</span>
             </div>
             <p className="price-note">
-              {yearly ? "1.788.000₫ / năm" : "Thanh toán theo tháng"} · Mức giá
-              dự kiến
+              Chuyển khoản ngân hàng · Không tự động gia hạn
             </p>
-            <Button className="w-full" disabled={busy} onClick={interest}>
-              {busy ? "Đang lưu…" : "Đăng ký quan tâm"}
-              <ArrowRight size={16} />
+            <Button className="w-full" asChild>
+              <Link href="/billing">{config?.enabled ? "Đăng ký Premium" : "Xem gói & thanh toán"}<ArrowRight size={16} /></Link>
             </Button>
             <ul className="list-clean">
               {[
@@ -114,8 +97,8 @@ export function Pricing() {
               ))}
             </ul>
             <p className="field-help">
-              Premium chưa mở thanh toán. Không thu phí khi đăng ký quan tâm.
-              Cần đăng nhập để lưu lựa chọn.
+              Cần đăng nhập để tạo đơn. Quét QR, chuyển đúng số tiền và mã đơn;
+              Premium mở sau khi admin đối soát tiền thực nhận.
             </p>
           </Card>
         </div>

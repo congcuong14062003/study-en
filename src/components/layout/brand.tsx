@@ -7,7 +7,7 @@ export function Brand() {
         <BookOpen size={23} strokeWidth={2.3} />
       </span>
       <span>
-        English<span className="brand-accent">Master</span>
+        Study To <span className="brand-accent">Master</span>
         <small>YOUR EVERYDAY ENGLISH</small>
       </span>
     </Link>

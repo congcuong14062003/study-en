@@ -93,6 +93,45 @@ Sao chép các khóa cần thiết từ `.env.example`; không đưa secret vào
 
 Tạo quản trị viên cho môi trường riêng bằng `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` và `pnpm admin:create`. Mật khẩu không được ghi ra terminal.
 
+## Luyện đề TOEIC / IELTS
+
+Mục **Luyện đề TOEIC / IELTS** tại `/exams` có 6 bộ đề rút gọn, 72 câu do EnglishMaster biên soạn, ở ba mức cơ bản / trung cấp / nâng cao. TOEIC mẫu có hoàn thành câu, đọc và nghe tổng hợp bằng giọng trình duyệt; IELTS mẫu tập trung Academic Reading với trắc nghiệm, True/False/Not Given và trả lời ngắn có giới hạn số từ. Kết quả là số câu đúng và phần trăm chính xác; không chuyển đổi tuyến tính thành điểm TOEIC hoặc band IELTS chính thức.
+
+Sau khi cập nhật code, dừng dev server nếu Prisma engine đang bị khóa trên Windows rồi chạy:
+
+```powershell
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed:exams
+pnpm dev
+```
+
+`ExamPaper` lưu đề; `ExamAttempt` lưu bài làm, đáp án, thời điểm bắt đầu/hết hạn/nộp bài và bản sao nội dung đề. Chế độ ôn tập đếm thời gian trôi qua từ khi bắt đầu, gồm cả thời gian rời trang; chế độ kiểm tra dùng hạn nộp do server đặt. Tải lại trang hoặc đổi đồng hồ máy không reset thời hạn server. Đáp án tự lưu khi thay đổi; bản nháp chưa gửi còn được giữ trên thiết bị để gửi lại sau khi có kết nối, nếu bài chưa hết hạn. Khi hết hạn, UI khóa và tự gửi yêu cầu nộp. Nếu trình duyệt đã đóng hoặc mất mạng, bài vẫn hết hạn theo server; lần truy cập tiếp theo sẽ chốt kết quả từ đáp án đã lưu tại thời hạn, không nhận đáp án gửi muộn. Không cần cron cho từng bài.
+
+Chấm điểm và giải thích chỉ được trả sau khi nộp. Gửi lại yêu cầu nộp không tạo thêm bài hoặc thay đổi điểm. Đề chỉnh sửa sau đó không làm thay đổi lịch sử đã lưu. Có thể bổ sung đề trong `prisma/exam-content.ts`; `pnpm db:seed:exams` chỉ đồng bộ bộ đề. Quy trình đồng bộ nội dung Vercel production hiện có cũng seed các bộ đề này qua `prisma/seed.ts`.
+
+Kiểm tra: `pnpm typecheck`, `pnpm test`. Sau khi migrate/seed, chạy `pnpm test:exams:integration` để kiểm tra với PostgreSQL local thật; script tạo một tài khoản tạm, kiểm tra lưu/tiếp tục bài, bắt đầu đồng thời, tự nộp quá hạn, chặn đáp án muộn và lịch sử, rồi xóa đúng tài khoản tạm cùng bài làm thử. Script từ chối database không ở localhost.
+
+Khi `pnpm dev` đang chạy ở `http://localhost:3000`, chạy thêm `pnpm test:exams:http` để kiểm tra route HTTP thật (bao gồm export `PUT`), lưu/đọc lại đáp án và nộp bài có chấm điểm/giải thích. Script dùng phiên đăng nhập của tài khoản test tạm riêng, không dùng tài khoản học viên; chỉ chấp nhận máy chủ và database local, rồi xóa dữ liệu test. Có thể đặt `EXAM_TEST_BASE_URL` nếu dev server chạy ở cổng local khác.
+
+## Premium bằng chuyển khoản QR (đối soát thủ công)
+
+Migration `20261016010000_bank_transfer_premium` bổ sung cấu hình ngân hàng và mở rộng bảng `Payment` cho đơn chuyển khoản. Migration `20261019000000_generated_vietqr` bổ sung mã ngân hàng và URL QR tự sinh theo từng đơn, không xóa ảnh/đơn cũ. Chạy `pnpm db:migrate`, `pnpm db:generate`, rồi khởi động lại `pnpm dev` (dừng server trước khi generate nếu Windows đang khóa DLL). Migration không tự bật thu tiền hoặc tạo tài khoản nhận tiền mẫu.
+
+1. Admin vào **Gói thành viên** (`/admin/subscriptions`), nhập tên ngân hàng, mã ngân hàng/BIN VietQR (VD: `970415` hoặc `ICB` cho Vietinbank), tên chủ tài khoản và số tài khoản. Điền đủ thông tin sẽ tự hiện QR xem trước tài khoản nhận, không cần upload ảnh. Nhập giá 1 tháng/12 tháng và thông tin hỗ trợ, bật đăng ký rồi lưu. Mã ngân hàng là BIN hoặc mã viết tắt VietQR, không phải tên chi nhánh. QR xem trước chưa có số tiền/mã đơn và chưa áp dụng cho học viên cho đến khi lưu. Luôn quét thử để kiểm tra tài khoản thực; hệ thống không tự tra cứu/xác thực chủ tài khoản ngân hàng.
+2. Học viên vào **Gói học & thanh toán** (`/billing`) hoặc từ `/pricing`, tạo đơn. Server chốt giá, tài khoản, mã ngân hàng, mã đơn `EM…` rồi tạo URL VietQR có `amount`, `addInfo` và `accountName`; client không được quyết định số tiền hoặc URL. QR được điền sẵn số tiền và mã đơn, học viên vẫn phải kiểm tra trên ứng dụng ngân hàng trước khi xác nhận. Mỗi người chỉ có một đơn đang mở. Giá, ngân hàng và URL QR được chụp lại theo đơn; sửa cấu hình không đổi đơn cũ. Đơn tạo trước khi chuyển sang VietQR vẫn dùng đúng ảnh QR cũ, không tự thay tài khoản nhận bằng cấu hình mới.
+3. Sau khi chuyển khoản, học viên có thể tải biên lai và bấm **Tôi đã chuyển khoản**. Admin nhận thông báo trong hệ thống, đơn sang chờ đối soát; **chưa mở Premium**. Không gửi OTP, mật khẩu hoặc thông tin thẻ. Biên lai chỉ người sở hữu và admin được xem.
+4. Admin kiểm tra giao dịch thực nhận trên ngân hàng, đối chiếu số tiền và mã đơn; nhập mã giao dịch ngân hàng và xác nhận đã nhận đủ tiền, sau đó duyệt. Một transaction cập nhật `Payment`, `Subscription`, vai trò và thông báo cho học viên. Gửi lại cùng thao tác không cộng thời hạn lần nữa; mã ngân hàng không thể dùng cho hai đơn. Nên nhập mã giao dịch theo cùng quy ước (bao gồm ngân hàng nếu cần) để đối soát nhất quán.
+5. Gói mới bắt đầu khi được duyệt; gia hạn cộng 1 hoặc 12 tháng lịch từ ngày hết hạn còn hiệu lực. Gói đã hết hạn bắt đầu lại từ lúc duyệt; gói cấp trọn đời không bị rút ngắn. Các chức năng Premium kiểm tra `Subscription.currentPeriodEnd`, không chỉ vai trò `PREMIUM`. Học viên thấy trạng thái và thông báo khi mở gói; không tự gia hạn / tự trừ tiền. Đơn bị từ chối có lý do và được gửi yêu cầu đối soát lại; không chuyển tiền lại chỉ vì bị từ chối.
+
+QR mới dùng Quick Link `https://img.vietqr.io/image/<BANK_CODE>-<ACCOUNT_NO>-compact.svg` tương tự logic tham khảo từ `luxhomes_server/src/models/payment.model.js`, không gọi API Generate và không cần upload ảnh. Dùng SVG theo khuyến nghị hiện tại của [VietQR](https://www.vietqr.io/qr-dong) và [thông báo chuyển đổi](https://www.vietqr.io/thong-bao-cap-nhat). Khi hiển thị ảnh, trình duyệt gửi mã ngân hàng, số tài khoản, tên người nhận, cùng số tiền và mã đơn (đối với QR đơn) tới VietQR; không gửi email học viên, mật khẩu, OTP hoặc ảnh biên lai. QR xem trước được cập nhật sau khi nhập ổn định để tránh gửi request mỗi phím bấm. Nếu dịch vụ tạo ảnh lỗi, UI báo rõ và vẫn có thông tin để đối chiếu/chuyển khoản thủ công; không coi việc tải được ảnh là đã thanh toán hoặc xác thực chủ tài khoản.
+
+Chỉ biên lai và ảnh QR của các đơn cũ còn lưu trong `PaymentImage` (PostgreSQL), không ghi vào filesystem tạm của Vercel. Ảnh cũ được giữ để lịch sử không bị đổi. Cần theo dõi dung lượng database và chuyển biên lai sang object storage khi tăng quy mô. Thông tin ngân hàng/giá/đơn tiền là dữ liệu vận hành, không nằm trong seed và không bị seed ghi đè. Cấu hình thông tin nhận tiền riêng trên production sau khi deploy; dữ liệu local không tự đồng bộ lên Vercel. Cấu hình cũ cần bổ sung mã ngân hàng/BIN rồi lưu trước khi tạo đơn mới.
+
+Chưa kết nối API ngân hàng/webhook nên hệ thống **không tự biết tiền đã vào**. Admin cần kiểm tra ngân hàng thủ công; email/ảnh chụp/nút báo đã chuyển không phải bằng chứng đối soát tự động. Hoàn tiền, tự động đối soát, hóa đơn và cơ chế thu tiền định kỳ chưa nằm trong tính năng này.
+
+Kiểm thử: `pnpm test`, `pnpm typecheck`; khi dev server và PostgreSQL local đang chạy, `pnpm test:billing:http`. Unit test kiểm tra URL VietQR, encoding, số tiền/mã đơn do server quyết định, bảo vệ giá trị đầu vào và việc lưu snapshot. HTTP test dùng tài khoản/đơn tạm, kiểm tra quyền, QR cũ, URL QR mới, ảnh biên lai riêng tư, upload biên lai giả, xác nhận giao dịch, duyệt lặp/đồng thời, gia hạn và từ chối/hủy; dọn đúng dữ liệu test. Không dùng phiên học viên thật, không đổi cấu hình ngân hàng/giá thật và từ chối chạy vào host/database không phải local. Các integration test không gửi request tới VietQR với thông tin tài khoản thật.
+
 ## Triển khai
 
 ```powershell
@@ -114,10 +153,10 @@ Các thiết lập trong repository không tự kết nối dự án với Verce
 
 ## Phạm vi MVP và phần cần hoàn thiện trước khi mở thương mại
 
-- Chưa nối cổng thanh toán/webhook; Premium có thể cấp thủ công bởi admin. Trang bảng giá ghi rõ mức giá dự kiến và không thu tiền.
+- Premium hỗ trợ chuyển khoản QR và admin đối soát/mở gói thủ công. Chưa nối API ngân hàng/cổng thanh toán/webhook, chưa tự đối soát, hoàn tiền hoặc xuất hóa đơn.
 - Speaking chấm **độ khớp văn bản nhận dạng**, không giả lập điểm phát âm, độ trôi chảy hoặc ngữ điệu. Muốn chấm các chỉ số đó cần dịch vụ phân tích âm thanh.
 - UI hiện bằng tiếng Việt. Nội dung học tiếng Anh có bản dịch; chưa có bản dịch toàn bộ giao diện sang tiếng Anh.
-- Quiz MVP dùng trắc nghiệm một đáp án. Chưa có đầy đủ dạng nối từ, tự luận, gõ từ và bộ đề IELTS/TOEIC/TOEFL riêng.
+- Luyện đề TOEIC/IELTS hiện là các bộ đề rút gọn, chưa phải đề thi đủ độ dài hoặc đủ bốn kỹ năng. Chấm tự động câu chọn đáp án và trả lời ngắn; chưa chấm Writing/Speaking theo thang điểm chứng chỉ trong khu luyện đề.
 - Gợi ý học hiện dựa trên điểm kỹ năng đã lưu; chưa dùng mô hình AI để tối ưu lộ trình. CEFR là ước tính tham khảo, không phải chứng chỉ.
 - Từ điển dùng thư viện nội bộ đã seed; không tra mọi từ bên ngoài. History tra từ và theme chỉ là tùy chọn trên thiết bị.
 - Nhắc học là thông báo trong ứng dụng, chưa có push/email chạy nền. Bài viết AI được lưu nhưng chưa có màn hình lịch sử bài viết riêng.

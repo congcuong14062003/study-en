@@ -21,6 +21,18 @@ import {
 } from "@/components/account/progress-pages";
 import { ProfileSettings } from "@/components/account/profile-settings";
 import { LoadingSkeleton } from "@/components/ui/states";
+const ExamHub = nextDynamic(
+  () => import("@/components/exams/exam-hub").then((m) => m.ExamHub),
+  { loading: () => <LoadingSkeleton /> },
+);
+const BillingPage = nextDynamic(
+  () => import("@/components/billing/billing").then((m) => m.BillingPage),
+  { loading: () => <LoadingSkeleton /> },
+);
+const AdminBilling = nextDynamic(
+  () => import("@/components/billing/admin-billing").then((m) => m.AdminBilling),
+  { loading: () => <LoadingSkeleton /> },
+);
 export const dynamic = "force-dynamic";
 const LessonPlayer = nextDynamic(
   () =>
@@ -69,6 +81,8 @@ const routeTitles: Record<string, string> = {
   onboarding: "Làm quen với bạn",
   "placement-test": "Kiểm tra trình độ",
   quiz: "Luyện tập",
+  exams: "Luyện đề TOEIC / IELTS",
+  billing: "Gói học & thanh toán",
   lessons: "Bài học",
   admin: "Quản trị",
 };
@@ -97,6 +111,7 @@ export default async function Page({ params, searchParams }: Props) {
       "reading",
       "lessons",
       "admin",
+      "exams",
     ].includes(section)
   )
     notFound();
@@ -158,6 +173,12 @@ export default async function Page({ params, searchParams }: Props) {
         />
       );
       break;
+    case "exams":
+      content = <ExamHub attemptId={id} key={id || "catalog"} />;
+      break;
+    case "billing":
+      content = <BillingPage />;
+      break;
     case "placement-test":
       content = <QuizPage quizId="placement" />;
       break;
@@ -199,7 +220,7 @@ export default async function Page({ params, searchParams }: Props) {
       content = <ProfileSettings settings={section === "settings"} />;
       break;
     case "admin":
-      content = <AdminDashboard section={id} />;
+      content = id === "subscriptions" ? <AdminBilling /> : <AdminDashboard section={id} />;
       break;
     default:
       notFound();
@@ -213,6 +234,7 @@ export default async function Page({ params, searchParams }: Props) {
               name: user.name,
               email: user.email,
               role: user.role,
+              premiumActive: user.subscription?.plan === "PREMIUM" && user.subscription.status === "active" && (!user.subscription.currentPeriodEnd || user.subscription.currentPeriodEnd > new Date()),
               profile: user.profile ? { level: user.profile.level } : null,
             }
           : null

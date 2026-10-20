@@ -35,6 +35,7 @@ model User {
   vocabulary UserVocabulary[]
   reviews VocabularyReview[]
   quizAttempts QuizAttempt[]
+  examAttempts ExamAttempt[]
   achievements UserAchievement[]
   studySessions StudySession[]
   dailyGoals DailyGoal[]
@@ -314,6 +315,40 @@ model Answer {
   question Question @relation(fields:[questionId], references:[id], onDelete:Restrict)
   @@unique([attemptId,questionId])
 }
+model ExamPaper {
+  id String @id
+  title String
+  examType String
+  level String
+  description String
+  durationSeconds Int
+  questions Json
+  published Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  attempts ExamAttempt[]
+}
+model ExamAttempt {
+  id String @id @default(cuid())
+  userId String
+  paperId String
+  mode String
+  snapshot Json
+  answers Json @default("{}")
+  startedAt DateTime @default(now())
+  expiresAt DateTime?
+  submittedAt DateTime?
+  autoSubmitted Boolean @default(false)
+  elapsedSeconds Int @default(0)
+  score Int?
+  total Int
+  result Json?
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  paper ExamPaper @relation(fields:[paperId], references:[id], onDelete:Restrict)
+  @@index([userId,startedAt])
+  @@index([expiresAt,submittedAt])
+}
 model Achievement {
   id String @id
   title String
@@ -403,7 +438,53 @@ model Payment {
   currency String @default("VND")
   status String
   createdAt DateTime @default(now())
+  method String @default("legacy")
+  period String?
+  bankName String?
+  bankCode String?
+  qrCodeUrl String?
+  accountName String?
+  accountNumber String?
+  instructions String?
+  qrImageId String?
+  qrImage PaymentImage? @relation("OrderQr", fields:[qrImageId], references:[id])
+  receiptId String? @unique
+  receipt PaymentImage? @relation("OrderReceipt", fields:[receiptId], references:[id])
+  transferNote String?
+  reportedAt DateTime?
+  reviewedAt DateTime?
+  reviewedBy String?
+  reviewNote String?
+  bankTransactionId String? @unique
+  premiumUntil DateTime?
   user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@index([method,status,createdAt])
+  @@index([userId,createdAt])
+}
+model BankTransferSettings {
+  id String @id @default("bank-transfer")
+  enabled Boolean @default(false)
+  bankName String @default("")
+  bankCode String @default("")
+  accountName String @default("")
+  accountNumber String @default("")
+  instructions String @default("")
+  monthlyAmount Int @default(199000)
+  yearlyAmount Int @default(1788000)
+  qrImageId String?
+  qrImage PaymentImage? @relation(fields:[qrImageId], references:[id])
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+model PaymentImage {
+  id String @id @default(cuid())
+  kind String
+  contentType String
+  data Bytes
+  createdAt DateTime @default(now())
+  settings BankTransferSettings[]
+  orders Payment[] @relation("OrderQr")
+  receiptFor Payment? @relation("OrderReceipt")
 }
 model AIConversation {
   id String @id @default(cuid())
