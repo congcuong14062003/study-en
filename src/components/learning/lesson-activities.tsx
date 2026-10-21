@@ -25,6 +25,7 @@ import type { PublicQuiz } from "@/services/content";
 import { AudioButton, speak } from "./audio-player";
 import { InteractiveReadingText } from "./interactive-reading-text";
 import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
+import { HanziStrokeOrder } from "./hanzi-stroke-order";
 
 function deterministicShuffle<T extends { id: string }>(items: T[]) {
   if (items.length < 2) return items;
@@ -112,6 +113,16 @@ export function WordMatch({ words, onComplete }: { words: Vocabulary[]; onComple
           ))}
         </div>
       </div>
+      {choices.some((word) => word.language === "zh") && (
+        <div className="hanzi-lesson-words">
+          <p>Cách viết các từ trong bài</p>
+          <div className="flex-row">
+            {choices.filter((word) => word.language === "zh").map((word) => (
+              <div key={word.id}><span lang="zh-CN">{word.word}</span><HanziStrokeOrder text={word.word} pinyin={word.pinyin} language={word.language} /></div>
+            ))}
+          </div>
+        </div>
+      )}
       {matched.length === choices.length && (
         <div className="activity-success">
           <CheckCircle2 size={18} /> Tuyệt vời! Bạn đã ghép đúng tất cả các từ.

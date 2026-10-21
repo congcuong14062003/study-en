@@ -12,6 +12,7 @@ import type { Word } from "./vocabulary";
 import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
 import { VocabularyExampleAudio } from "./vocabulary-example-audio";
 import { useLearningLanguage } from "./language-switcher";
+import { ChineseTextTools } from "./chinese-text-tools";
 export function Dictionary() {
   const language = useLearningLanguage();
   const historyKey = `englishmaster-dictionary-history-${language}`;
@@ -142,12 +143,14 @@ export function Dictionary() {
               <AudioButton text={selected.word} lang="en-US" label="American" />
             </>}
           </div>
+          <ChineseTextTools text={selected.word} pinyin={selected.pinyin} language={selected.language} />
           <hr className="divider" />
           <h2>{selected.meaning}</h2>
           <p className="mt-4">{selected.definition}</p>
           <div className="word-example">
             <p>{selected.example}</p>
             <VocabularyExampleAudio example={selected.example} />
+            <ChineseTextTools text={selected.example} language={selected.language} />
             <VocabularyExampleTranslation word={selected} />
           </div>
           <div className="grid-2">

@@ -7950,6 +7950,56 @@ tbody > tr:hover {
   .exam-result-summary > h2 { font-size: 50px; }
 }
 
+/* On-demand Chinese stroke order; SVG colors follow the workspace theme. */
+.hanzi-open-button { gap: 7px; white-space: normal; }
+.vocabulary-card > .hanzi-open-button { align-self: flex-start; margin-top: 10px; }
+.dialog-content.hanzi-dialog { width: min(540px, calc(100vw - 32px)); padding: 26px; }
+.hanzi-dialog > h2 { padding-right: 44px; overflow-wrap: anywhere; }
+.hanzi-dialog .dialog-close { width: 44px; height: 44px; display: grid; place-items: center; top: 12px; right: 12px; }
+.hanzi-dialog > p { overflow-wrap: anywhere; }
+.hanzi-character-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 12px; }
+.hanzi-character-picker .btn { min-width: 44px; min-height: 44px; font-size: 20px; }
+.hanzi-writing-grid { display: block; width: min(100%, 280px); height: auto; margin: 0 auto; border: 1px solid var(--line); background: var(--bg); }
+.hanzi-guides { fill: none; stroke: var(--line); stroke-width: 3; stroke-dasharray: 14 14; }
+.hanzi-outline-stroke { fill: var(--muted); opacity: .2; }
+.hanzi-completed-stroke { fill: var(--text); }
+.hanzi-active-stroke { fill: none; stroke: var(--primary); stroke-width: 180; stroke-linecap: round; stroke-linejoin: round; }
+.hanzi-start-point { fill: var(--primary); stroke: var(--bg); stroke-width: 4; }
+.hanzi-status { text-align: center; font-size: 14px; margin: 14px 0; font-variant-numeric: tabular-nums; }
+.hanzi-controls { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.hanzi-controls .btn { min-height: 44px; }
+.hanzi-help { text-align: center; color: var(--muted); font-size: 12px; margin-top: 12px; }
+.hanzi-source { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 18px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.hanzi-source a { text-decoration: underline; }
+.hanzi-loading { min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
+.hanzi-lesson-words { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.hanzi-lesson-words > p { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.hanzi-lesson-words > .flex-row { flex-wrap: wrap; gap: 12px; }
+.hanzi-lesson-words > .flex-row > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.flashcard-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-block: 16px; }
+.flashcard-tools > .audio-button { max-width: 100%; flex-wrap: wrap; justify-content: center; }
+.chinese-text-tools { width: 100%; margin-top: 10px; text-align: left; }
+.chinese-text-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.chinese-text-actions .btn { min-height: 40px; white-space: normal; }
+.chinese-pinyin-reading { padding: 12px; margin-top: 10px; background: var(--bg); border-radius: 8px; overflow-wrap: anywhere; }
+.chinese-pinyin-reading > span { color: var(--primary); }
+.chinese-pinyin-reading > small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
+.flashcard-example-tools { width: 100%; padding-top: 14px; border-top: 1px solid var(--line); text-align: left; }
+.flashcard-example-tools > p { margin-bottom: 8px; font-size: 12px; }
+.flashcard-example-tools > .audio-button { flex-wrap: wrap; max-width: 100%; }
+.hanzi-mode-picker { display: flex; gap: 8px; margin-bottom: 12px; }
+.hanzi-mode-picker .btn { min-height: 40px; }
+.hanzi-practice-surface { width: min(100%, 280px); aspect-ratio: 1; position: relative; margin-inline: auto; border: 1px solid var(--line); background: var(--bg); }
+.hanzi-practice-guides { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.hanzi-practice-host { position: relative; width: 100%; height: 100%; touch-action: none; user-select: none; }
+.hanzi-practice-host > svg { display: block; max-width: 100%; touch-action: none; }
+.hanzi-word-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin-top: 16px; color: var(--muted); font-size: 12px; }
+@media (max-width: 480px) {
+  .dialog-content.hanzi-dialog { padding: 22px 16px; max-height: calc(100dvh - 32px); }
+  .hanzi-controls .btn { padding-inline: 10px; font-size: 12px; gap: 5px; }
+  .hanzi-writing-grid { width: min(100%, 240px); }
+}
+
 /* Workspace navigation: the drawer and desktop sidebar share the same routes. */
 .workspace-menu-toggle { display: none; }
 .breadcrumb { min-width: 0; }

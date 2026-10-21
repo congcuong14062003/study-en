@@ -39,6 +39,7 @@ import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
 import { VocabularyExampleAudio } from "./vocabulary-example-audio";
 import { useLearningLanguage } from "./language-switcher";
 import { learningLanguages } from "@/lib/languages";
+import { ChineseTextTools } from "./chinese-text-tools";
 export type Word = Vocabulary & {
   review?: UserVocabulary | null;
 };
@@ -171,6 +172,7 @@ export function VocabularyCard({
         {word.pinyin || word.ipa} <span>{word.partOfSpeech}</span>
       </div>
       <h3>{word.meaning}</h3>
+      <ChineseTextTools text={word.word} pinyin={word.pinyin} language={word.language} />
       {word.imageUrl && (
         <Image
           className="vocabulary-illustration"
@@ -198,6 +200,7 @@ export function VocabularyCard({
         </div>
         <p>“{word.example}”</p>
         <VocabularyExampleAudio example={word.example} />
+        <ChineseTextTools text={word.example} language={word.language} />
         <VocabularyExampleTranslation word={word} />
       </div>
       <WordRelations word={word} />
@@ -458,7 +461,8 @@ export function Flashcards() {
   );
   useEffect(() => {
     function key(e: KeyboardEvent) {
-      if ((e.target as HTMLElement).matches("input,textarea,select")) return;
+      if (e.defaultPrevented || document.querySelector('[role="dialog"]')) return;
+      if (e.target instanceof Element && e.target.closest("input,textarea,select,a,button,[contenteditable=true]") && !e.target.closest("button.flashcard")) return;
       if (e.code === "Space") {
         e.preventDefault();
         setFlipped((v) => !v);
@@ -567,12 +571,17 @@ export function Flashcards() {
           </span>
         </span>
       </button>
-      <div className="centered-text">
+      <div className="centered-text flashcard-tools">
         <AudioButton
           text={word.word}
           label="Nghe từ vựng"
         />
-        {flipped && <VocabularyExampleAudio example={word.example} />}
+        <ChineseTextTools key={word.id} text={word.word} pinyin={word.pinyin} language={word.language} />
+        {flipped && <div className="flashcard-example-tools">
+          <p>Câu ví dụ</p>
+          <VocabularyExampleAudio example={word.example} />
+          <ChineseTextTools text={word.example} language={word.language} />
+        </div>}
       </div>
       <div className="flashcard-ratings">
         {[
