@@ -10,7 +10,11 @@ import { AudioButton } from "./audio-player";
 import { FavoriteButton } from "./favorite-button";
 import type { Word } from "./vocabulary";
 import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
+import { VocabularyExampleAudio } from "./vocabulary-example-audio";
+import { useLearningLanguage } from "./language-switcher";
 export function Dictionary() {
+  const language = useLearningLanguage();
+  const historyKey = `englishmaster-dictionary-history-${language}`;
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") || ""),
     [selected, setSelected] = useState<Word | null>(null),
@@ -20,11 +24,11 @@ export function Dictionary() {
     try {
       setHistory(
         JSON.parse(
-          localStorage.getItem("englishmaster-dictionary-history") || "[]",
+          localStorage.getItem(historyKey) || "[]",
         ),
       );
     } catch {}
-  }, []);
+  }, [historyKey]);
   useEffect(() => {
     if (data && params.get("q")) {
       const found = data.find(
@@ -40,7 +44,7 @@ export function Dictionary() {
     setHistory(next);
     try {
       localStorage.setItem(
-        "englishmaster-dictionary-history",
+        historyKey,
         JSON.stringify(next),
       );
     } catch {}
@@ -51,13 +55,13 @@ export function Dictionary() {
       <ErrorState message={error || "Chưa tải được từ điển"} retry={refresh} />
     );
   const results = data.filter((w) =>
-    `${w.word} ${w.meaning}`.toLowerCase().includes(q.toLowerCase()),
+    `${w.word} ${w.pinyin || ""} ${w.meaning}`.toLowerCase().includes(q.toLowerCase()),
   );
   return (
     <div className="content-narrow">
       <PageHeading
         title="Hiểu một từ. Dùng đúng cách."
-        description="Từ điển Anh–Việt trong thư viện học tập của bạn."
+        description={`Từ điển ${language === "zh" ? "Trung" : "Anh"}–Việt trong thư viện học tập của bạn.`}
       />
       <Card className="dictionary-search">
         <Search size={23} />
@@ -68,7 +72,7 @@ export function Dictionary() {
             setQ(e.target.value);
             setSelected(null);
           }}
-          placeholder="Tra từ tiếng Anh hoặc nghĩa tiếng Việt…"
+          placeholder={language === "zh" ? "Tra chữ Hán, Pinyin hoặc nghĩa tiếng Việt…" : "Tra từ tiếng Anh hoặc nghĩa tiếng Việt…"}
           aria-label="Tra từ điển"
           autoComplete="off"
         />
@@ -84,7 +88,7 @@ export function Dictionary() {
               >
                 <div>
                   <strong>{w.word}</strong>
-                  <span>{w.ipa}</span>
+                  <span>{w.pinyin || w.ipa}</span>
                 </div>
                 <span>{w.meaning}</span>
               </button>
@@ -131,16 +135,19 @@ export function Dictionary() {
             />
           </div>
           <h1>{selected.word}</h1>
-          <p>{selected.ipa}</p>
+          <p>{selected.pinyin || selected.ipa}</p>
           <div className="flex-row mt-4">
-            <AudioButton text={selected.word} lang="en-GB" label="British" />
-            <AudioButton text={selected.word} lang="en-US" label="American" />
+            {language === "zh" ? <AudioButton text={selected.word} lang="zh-CN" label="Tiếng Trung phổ thông" /> : <>
+              <AudioButton text={selected.word} lang="en-GB" label="British" />
+              <AudioButton text={selected.word} lang="en-US" label="American" />
+            </>}
           </div>
           <hr className="divider" />
           <h2>{selected.meaning}</h2>
           <p className="mt-4">{selected.definition}</p>
           <div className="word-example">
             <p>{selected.example}</p>
+            <VocabularyExampleAudio example={selected.example} />
             <VocabularyExampleTranslation word={selected} />
           </div>
           <div className="grid-2">

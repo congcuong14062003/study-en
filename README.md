@@ -132,6 +132,32 @@ Chưa kết nối API ngân hàng/webhook nên hệ thống **không tự biết
 
 Kiểm thử: `pnpm test`, `pnpm typecheck`; khi dev server và PostgreSQL local đang chạy, `pnpm test:billing:http`. Unit test kiểm tra URL VietQR, encoding, số tiền/mã đơn do server quyết định, bảo vệ giá trị đầu vào và việc lưu snapshot. HTTP test dùng tài khoản/đơn tạm, kiểm tra quyền, QR cũ, URL QR mới, ảnh biên lai riêng tư, upload biên lai giả, xác nhận giao dịch, duyệt lặp/đồng thời, gia hạn và từ chối/hủy; dọn đúng dữ liệu test. Không dùng phiên học viên thật, không đổi cấu hình ngân hàng/giá thật và từ chối chạy vào host/database không phải local. Các integration test không gửi request tới VietQR với thông tin tài khoản thật.
 
+## Học tiếng Anh và tiếng Trung
+
+Ở thanh trên cùng của khu học tập, chọn **Tiếng Anh / Tiếng Trung**. Hệ thống lưu lựa chọn vào `Profile.targetLanguage` (`en` / `zh`), đăng ký khóa nhập môn khả dụng nếu chưa có, rồi mở bài chưa hoàn thành gần nhất của ngôn ngữ đó. Chuyển lại sẽ tiếp tục đúng bài/bước cũ; không xóa tiến độ, flashcard hoặc bài viết của ngôn ngữ còn lại. `Profile.language` vẫn là tùy chọn ngôn ngữ giao diện, không phải ngôn ngữ học.
+
+Khóa học/bản đồ, từ vựng, flashcard, ngữ pháp, nghe, nói, đọc, viết, bài luyện tập, tìm kiếm và hội thoại AI được lọc theo ngôn ngữ học. Tiến độ bài, từ đang học, lịch ôn và điểm kỹ năng được xem riêng theo ngôn ngữ; XP, chuỗi ngày, thời gian học, mục tiêu ngày và gói Premium dùng chung tài khoản. Kiểm tra CEFR, điều chỉnh lộ trình tiếng Anh và bộ đề TOEIC/IELTS vẫn là nội dung **tiếng Anh**, có thông báo rõ khi truy cập từ chế độ tiếng Trung.
+
+Bộ tiếng Trung ban đầu dùng **chữ giản thể + Pinyin + nghĩa tiếng Việt**: 6 bài, 24 từ biên soạn riêng, 6 bài nghe/đọc/nói/viết, 24 câu hỏi và 4 bộ luyện tập kỹ năng. Thư viện bổ sung thêm **3.000 từ** có nghĩa Việt, Pinyin và câu ví dụ tiếng Trung (tổng 3.024 từ khi nhập mới), chia chủ đề theo nhãn HSK 3.0/2021 của nguồn cộng đồng. Đây không phải giáo trình đầy đủ hoặc khóa luyện thi HSK chính thức. Quản trị viên có thể chọn `language` khi tạo/sửa nội dung và nhập Pinyin; nội dung gắn vào bài học phải cùng ngôn ngữ với khóa học. Từ vựng vẫn giữ ràng buộc `word` duy nhất toàn hệ thống để tương thích các bộ nhập hiện tại; nếu mở rộng các ngôn ngữ có cách viết trùng nhau, cần nâng cấp khóa này và các script nhập dữ liệu.
+
+Lần đầu cập nhật trên máy local:
+
+```powershell
+# Dừng pnpm dev trước db:generate nếu Windows đang khóa Prisma DLL.
+pnpm db:migrate
+pnpm db:generate
+pnpm db:seed:chinese
+pnpm dev
+```
+
+Lệnh seed tiếng Trung có thể chạy lại, không tạo tài khoản demo hoặc xóa dữ liệu học viên. Gói 3.000 từ dùng insert-only/skip-duplicates, không ghi đè nghĩa hoặc bản dịch câu đã được chỉnh sửa. `pnpm db:seed` và luồng Vercel Production hiện có cũng đồng bộ bộ nội dung này sau migration; không cần copy tài khoản/progress từ local lên production. Dữ liệu đã được commit trong `prisma/data/chinese-vocabulary-3000.json`, deploy không cần tải nguồn ngoài hoặc gọi AI. Muốn tái tạo artifact từ các phiên bản nguồn cố định, chạy `pnpm vocabulary:build:chinese` (chỉ tạo file, không nhập DB).
+
+Nút **Nghe câu ví dụ** có ở thẻ từ vựng, từ điển, chi tiết từ trong bài đọc và mặt sau flashcard của cả tiếng Anh lẫn tiếng Trung, tách khỏi nút nghe từ đơn. Có chọn giọng và tốc độ; dùng TTS trình duyệt, không phải bản thu người thật và không gọi AI để phát âm. Giọng đọc/nhận dạng đặt locale `zh-CN` cho chữ Hán; giọng khả dụng phụ thuộc trình duyệt/hệ điều hành. Chấm nói là độ khớp lời nhận dạng, không phải điểm thanh điệu/phát âm. Chấm viết, hội thoại và tra từ tự động ngoài thư viện cần dịch vụ AI đã cấu hình, dùng chung hạn mức tài khoản.
+
+Gói 3.000 từ ghép danh sách/Pinyin từ Complete HSK Vocabulary, nghĩa Việt từ CVDICT qua bản lưu thaoshibe và câu ví dụ từ hsk-sentences-audio. Chỉ nhận mục khớp Pinyin **cả thanh điệu**, có câu ví dụ chứa đúng token từ; dữ liệu cộng đồng vẫn có thể còn lỗi và chưa được hiệu đính thủ công toàn bộ. Câu mới chưa có sẵn bản dịch Việt: UI dùng luồng dịch AI khi mở thẻ nếu đã cấu hình, rồi lưu kết quả để lần sau không dịch lại. Không tự dịch hàng loạt hoặc lấy nghĩa từ ghép giả thành bản dịch câu. Xem `ATTRIBUTION.md` và `/data/chinese-vocabulary-attribution.json` để biết nguồn, phiên bản cố định và giấy phép CC BY-SA 4.0.
+
+Kiểm thử: `pnpm test`, `pnpm typecheck`, `pnpm test:languages:http` (cần server + DB localhost đang chạy). Có thể đặt `LANGUAGES_TEST_BASE_URL=http://localhost:3101` để chạy với server kiểm thử riêng. HTTP test chỉ tạo/xóa đúng tài khoản tạm, không gọi AI trả phí hoặc thay đổi người học thật; kiểm tra chọn ngôn ngữ, thư viện/flashcard/hội thoại riêng, tiếp tục bài và giữ nguyên CEFR tiếng Anh.
+
 ## Triển khai
 
 ```powershell

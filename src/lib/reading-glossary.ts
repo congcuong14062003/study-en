@@ -3,6 +3,7 @@ export type GlossaryEntry = {
   word: string;
   meaning: string;
   ipa?: string | null;
+  pinyin?: string | null;
   partOfSpeech?: string | null;
 };
 
@@ -33,11 +34,12 @@ const commonMeanings: Record<string, string> = {
 };
 
 export function splitReadingWords(text: string) {
+  if (/\p{Script=Han}/u.test(text)) return Array.from(new Intl.Segmenter("zh", { granularity: "word" }).segment(text), (part) => part.segment);
   return text.split(/([A-Za-z]+(?:['’\-][A-Za-z]+)*)/g).filter(Boolean);
 }
 
 export function isReadingWord(token: string) {
-  return /^[A-Za-z]+(?:['’\-][A-Za-z]+)*$/.test(token);
+  return /^(?:[A-Za-z]+(?:['’\-][A-Za-z]+)*|\p{Script=Han}+)$/u.test(token);
 }
 
 export function readingWordContext(text: string, start: number, length: number) {

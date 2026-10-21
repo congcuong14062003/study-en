@@ -3940,6 +3940,10 @@ input[type="checkbox"] {
   align-items: center;
   gap: 4px;
 }
+.word-example > .audio-button { display: flex; flex-wrap: wrap; font-size: 12px; gap: 6px; color: var(--text); margin-block: 8px; }
+.vocabulary-data-notice { display: block; margin-bottom: 20px; font-size: 12px; }
+.vocabulary-data-notice summary { cursor: pointer; font-weight: 650; }
+.vocabulary-data-notice p { margin-block: 10px; line-height: 1.8; }
 .audio-voice-select {
   width: min(150px, 31vw);
   padding: 6px 8px;
@@ -7845,6 +7849,12 @@ tbody > tr:hover {
 .payment-qr { width: 220px; max-width: 100%; max-height: 300px; object-fit: contain; background: white; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
 .payment-qr-panel { min-width: 0; max-width: 360px; margin-block: 14px; }
 .payment-qr-panel .field-help { margin-top: 8px; }
+.learning-language-picker { display: flex; align-items: center; gap: 6px; }
+.learning-language-picker select { width: 148px; min-height: 38px; padding: 7px 10px; border-color: var(--primary); background: var(--primary-soft); color: var(--text); font-weight: 650; }
+.learning-language-picker small { color: var(--muted); }
+.learning-language-notice { padding: 12px 16px; margin-bottom: 20px; background: var(--primary-soft); border: 1px solid var(--line); border-radius: 10px; }
+.pinyin-support { color: var(--muted); font-size: 14px; line-height: 1.8; margin: 12px 0; }
+@media (max-width: 700px) { .learning-language-picker select { width: 116px; font-size: 12px; } .learning-language-picker small { display: none; } }
 .transfer-facts { margin: 0; }
 .transfer-facts > div { padding: 7px 0; }
 .transfer-facts dt { font-size: 12px; color: var(--muted); margin-bottom: 3px; }

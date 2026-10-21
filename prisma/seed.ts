@@ -11,8 +11,12 @@ import { immersiveListening, immersiveReading } from "./immersive-content";
 import { buildLearningPathLessons } from "./path-content";
 import { c2Courses, c2Grammar, c2Lessons, c2Listening, c2Questions, c2Reading, c2Vocabulary } from "./c2-content";
 import { examPapers } from "./exam-content";
+import { seedChinese } from "./chinese-content";
+import { seedChineseVocabulary } from "./chinese-vocabulary";
 const db = new PrismaClient();
 async function main() {
+    await seedChinese(db);
+    await seedChineseVocabulary(db);
     for (const paper of examPapers) {
         const data = { ...paper, questions: paper.questions as unknown as Prisma.InputJsonValue, published: true };
         await db.examPaper.upsert({ where: { id: paper.id }, create: data, update: data });

@@ -3,27 +3,28 @@ import { useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { speechLanguage } from "@/lib/languages";
 
-function englishVoices() {
+function languageVoices(lang: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window))
     return [];
   return window.speechSynthesis
     .getVoices()
-    .filter((voice) => voice.lang.toLowerCase().startsWith("en"))
+    .filter((voice) => voice.lang.toLowerCase().startsWith(lang.split("-")[0].toLowerCase()))
     .sort((a, b) =>
       `${a.lang} ${a.name}`.localeCompare(`${b.lang} ${b.name}`),
     );
 }
 
-function useEnglishVoices() {
+function useLanguageVoices(lang: string) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
-    const load = () => setVoices(englishVoices());
+    const load = () => setVoices(languageVoices(lang));
     load();
     window.speechSynthesis.addEventListener("voiceschanged", load);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", load);
-  }, []);
+  }, [lang]);
   return voices;
 }
 
@@ -35,7 +36,7 @@ function matchingVoice(voices: SpeechSynthesisVoice[], voiceURI?: string) {
   return voices.find((voice) => voice.voiceURI === voiceURI);
 }
 
-/** Prefer natural-sounding, friendly English voices commonly bundled by browsers and Windows. */
+/** Prefer natural-sounding voices for the requested language, without forcing an English voice onto Han text. */
 function defaultVoice(
   voices: SpeechSynthesisVoice[],
   lang: string,
@@ -49,7 +50,7 @@ function defaultVoice(
     : voices.filter((voice) =>
         voice.lang.startsWith(lang.split("-")[0]),
       );
-  const friendlyVoice = /aria|ava|emma|jenny|libby|sonia|sara|hazel|zira|samantha|female/i;
+  const friendlyVoice = /aria|ava|emma|jenny|libby|sonia|sara|hazel|zira|samantha|female|xiaoxiao|huihui|yaoyao/i;
   return (
     sameLocale.find((voice) => friendlyVoice.test(voice.name)) ||
     sameLocale.find((voice) => voice.localService) ||
@@ -59,7 +60,7 @@ function defaultVoice(
 
 export function speak(
   text: string,
-  lang = "en-US",
+  lang = speechLanguage(text),
   rate = 1,
   voiceURI?: string,
 ) {
@@ -71,21 +72,24 @@ export function speak(
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
   u.rate = rate;
-  const voices = englishVoices();
+  const voices = languageVoices(lang);
   const voice = defaultVoice(voices, lang, voiceURI);
   if (voice) u.voice = voice;
+  u.onerror = (event) => {
+    if (!["interrupted", "canceled"].includes(event.error)) toast.error("Không phát được giọng đọc. Hãy kiểm tra giọng ngôn ngữ đã cài trên trình duyệt/hệ điều hành.");
+  };
   window.speechSynthesis.speak(u);
 }
 export function AudioButton({
   text,
-  lang = "en-US",
+  lang = speechLanguage(text),
   label,
 }: {
   text: string;
   lang?: string;
   label?: string;
 }) {
-  const voices = useEnglishVoices();
+  const voices = useLanguageVoices(lang);
   const [voiceURI, setVoiceURI] = useState("");
   const [rate, setRate] = useState(1);
   return (
@@ -155,7 +159,7 @@ export function MediaAudioPlayer({
         </span>
         <div>
           <h3>{title || "Nghe và luyện tập"}</h3>
-          <p>Bản thu âm · English</p>
+          <p>Bản thu âm · {speechLanguage(text) === "zh-CN" ? "Tiếng Trung" : "Tiếng Anh"}</p>
         </div>
         <select
           aria-label="Tốc độ bản thu"
@@ -245,7 +249,8 @@ export function AudioPlayer({
     [speed, setSpeed] = useState(1),
     [transcript, setTranscript] = useState(false),
     [translated, setTranslated] = useState(false);
-  const voices = useEnglishVoices();
+  const lang = speechLanguage(text);
+  const voices = useLanguageVoices(lang);
   const [voiceURI, setVoiceURI] = useState("");
   const utterance = useRef<SpeechSynthesisUtterance | null>(null);
   useEffect(
@@ -276,9 +281,9 @@ export function AudioPlayer({
     }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-US";
+    u.lang = lang;
     u.rate = speed;
-    const voice = defaultVoice(voices, "en-US", voiceURI);
+    const voice = defaultVoice(voices, lang, voiceURI);
     if (voice) u.voice = voice;
     u.onend = () => {
       setPlaying(false);
@@ -306,9 +311,9 @@ export function AudioPlayer({
         <div>
           <h3>{title}</h3>
           <p>
-            {defaultVoice(voices, "en-US", voiceURI)
-              ? voiceLabel(defaultVoice(voices, "en-US", voiceURI)!)
-              : "Giọng đọc tự động · English (US)"}
+            {defaultVoice(voices, lang, voiceURI)
+              ? voiceLabel(defaultVoice(voices, lang, voiceURI)!)
+              : `Giọng đọc tự động · ${lang}`}
           </p>
         </div>
         <div className="audio-player-settings">
@@ -322,7 +327,7 @@ export function AudioPlayer({
               }}
             >
               <option value="">
-                Mặc định dịu · {defaultVoice(voices, "en-US")?.name || "en-US"}
+                Mặc định dịu · {defaultVoice(voices, lang)?.name || lang}
               </option>
               {voices.map((voice) => (
                 <option key={voice.voiceURI} value={voice.voiceURI}>

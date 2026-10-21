@@ -36,6 +36,9 @@ import { Pagination } from "@/components/ui/pagination";
 import type { PaginatedResponse } from "@/lib/pagination";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { VocabularyExampleTranslation } from "./vocabulary-example-translation";
+import { VocabularyExampleAudio } from "./vocabulary-example-audio";
+import { useLearningLanguage } from "./language-switcher";
+import { learningLanguages } from "@/lib/languages";
 export type Word = Vocabulary & {
   review?: UserVocabulary | null;
 };
@@ -165,7 +168,7 @@ export function VocabularyCard({
         <AudioButton text={word.word} />
       </div>
       <div className="word-ipa">
-        {word.ipa} <span>{word.partOfSpeech}</span>
+        {word.pinyin || word.ipa} <span>{word.partOfSpeech}</span>
       </div>
       <h3>{word.meaning}</h3>
       {word.imageUrl && (
@@ -180,7 +183,7 @@ export function VocabularyCard({
       )}
       <div className="word-example">
         <div className="word-example-header">
-          <span className="word-example-label">Câu ví dụ tiếng Anh</span>
+          <span className="word-example-label">Câu ví dụ {word.language === "zh" ? "tiếng Trung" : "tiếng Anh"}</span>
           <Button
             type="button"
             variant="ghost"
@@ -194,6 +197,7 @@ export function VocabularyCard({
           </Button>
         </div>
         <p>“{word.example}”</p>
+        <VocabularyExampleAudio example={word.example} />
         <VocabularyExampleTranslation word={word} />
       </div>
       <WordRelations word={word} />
@@ -238,6 +242,7 @@ export function VocabularyCard({
   );
 }
 export function VocabularyPage() {
+  const language = useLearningLanguage();
   const searchParams = useSearchParams();
   const learnedOnly = searchParams.get("status") === "learned";
   const [q, setQ] = useState(""),
@@ -268,6 +273,12 @@ export function VocabularyPage() {
     );
   return (
     <>
+      {language === "zh" && <details className="notice vocabulary-data-notice">
+        <summary>Nguồn bộ từ tiếng Trung mở rộng</summary>
+        <p>Nghĩa Việt từ CVDICT/CC-CEDICT qua bản lưu thaoshibe; danh sách từ từ Complete HSK Vocabulary; câu mẫu/Pinyin từ hsk-sentences-audio. Dữ liệu cộng đồng có thể cần hiệu đính, không phải giáo trình HSK chính thức.</p>
+        <p>Bản dịch Việt của câu mới được bổ sung bằng AI khi mở thẻ (nếu đã cấu hình), không phải nghĩa từ vựng ghép thành câu.</p>
+        <a className="text-link" href="/data/chinese-vocabulary-attribution.json" target="_blank" rel="noreferrer">Nguồn, phiên bản và giấy phép CC BY-SA 4.0</a>
+      </details>}
       <PageHeading
         title={
           learnedOnly
@@ -328,7 +339,7 @@ export function VocabularyPage() {
           onChange={(e) => {
             setQ(e.target.value);
           }}
-          placeholder="Tìm từ tiếng Anh hoặc nghĩa tiếng Việt…"
+          placeholder={language === "zh" ? "Tìm chữ Hán, Pinyin hoặc nghĩa tiếng Việt…" : "Tìm từ tiếng Anh hoặc nghĩa tiếng Việt…"}
           aria-label="Tìm từ vựng"
         />
         <select
@@ -353,7 +364,7 @@ export function VocabularyPage() {
           aria-label="Trình độ từ vựng"
         >
           <option value="all">Mọi trình độ</option>
-          {["A1", "A2", "B1", "B2", "C1", "C2"].map((value) => (
+          {learningLanguages[language].levels.map((value) => (
             <option key={value}>{value}</option>
           ))}
         </select>
@@ -400,6 +411,7 @@ type ReviewCard = UserVocabulary & {
   vocabulary: Vocabulary;
 };
 export function Flashcards() {
+  const language = useLearningLanguage();
   const { data, loading, error, refresh } = useData<ReviewCard[]>(
     "/vocabulary/reviews",
   );
@@ -467,12 +479,12 @@ export function Flashcards() {
         </span>
         <h2>Không có từ nào đến hạn ôn</h2>
         <p>
-          Bắt đầu ngay với 30 từ A1–A2, hoặc tự chọn từ trong thư viện để học.
+          {language === "zh" ? "Thêm bộ từ tiếng Trung nhập môn có Pinyin, hoặc tự chọn từ trong thư viện." : "Thêm tối đa 30 từ A1–A2 chưa học, hoặc tự chọn từ trong thư viện."}
         </p>
         <div className="flex-row justify-center">
           <Button onClick={addStarterPack} disabled={busy}>
             <Sparkles size={16} />
-            {busy ? "Đang thêm từ…" : "Bắt đầu với 30 từ"}
+            {busy ? "Đang thêm từ…" : "Thêm bộ từ nhập môn"}
           </Button>
           <Button asChild variant="outline">
             <Link href="/vocabulary">Tự chọn từ</Link>
@@ -518,7 +530,7 @@ export function Flashcards() {
       <button
         className={`flashcard ${flipped ? "flipped" : ""}`}
         onClick={() => setFlipped(!flipped)}
-        aria-label={flipped ? "Lật về mặt từ tiếng Anh" : "Lật thẻ xem nghĩa"}
+        aria-label={flipped ? "Lật về mặt từ vựng" : "Lật thẻ xem nghĩa"}
       >
         <span className="flashcard-inner">
           <span className="flashcard-face front">
@@ -526,7 +538,7 @@ export function Flashcards() {
               {word.partOfSpeech} · {word.level}
             </span>
             <strong>{word.word}</strong>
-            <span className="muted">{word.ipa}</span>
+            <span className="muted">{word.pinyin || word.ipa}</span>
             <small>
               Chạm để khám phá nghĩa <RotateCcw size={13} />
             </small>
@@ -557,9 +569,10 @@ export function Flashcards() {
       </button>
       <div className="centered-text">
         <AudioButton
-          text={`${word.word}. ${word.example}`}
-          label="Nghe phát âm"
+          text={word.word}
+          label="Nghe từ vựng"
         />
+        {flipped && <VocabularyExampleAudio example={word.example} />}
       </div>
       <div className="flashcard-ratings">
         {[

@@ -146,7 +146,7 @@ export function LessonPlayer({ id }: { id: string }) {
   const sentence =
     data.grammar?.examples[0] ||
     data.words[0]?.example ||
-    "I practise English every day.";
+    (data.lesson.course.language === "zh" ? "我每天学习中文。" : "I practise English every day.");
   const listenWord = data.words.find(hasListeningGap);
   const readingQuestion = data.quiz.questions.find((question) => question.skill === "reading");
   const skippable = step === 2 || step === 4;
@@ -243,6 +243,7 @@ export function LessonPlayer({ id }: { id: string }) {
                   translation={data.listening.translation}
                   title={data.listening.title}
                 />
+                {data.listening.pinyin && <p className="pinyin-support" lang="zh-Latn">Pinyin: {data.listening.pinyin}</p>}
               </Card>
             ) : (
               <Card className="activity-card activity-empty">
@@ -256,6 +257,7 @@ export function LessonPlayer({ id }: { id: string }) {
         {step === 3 && (
           <div className="content-narrow">
             <SpeakingRecorder text={sentence} />
+            {data.lesson.course.language === "zh" && data.grammar?.notes && <p className="pinyin-support">{data.grammar.notes}</p>}
           </div>
         )}
         {step === 4 && (

@@ -1,7 +1,7 @@
 import { ensureDailyReminder } from "./reminders";
 import { db } from "@/lib/db";
 import { effectiveStreak, studyDate } from "./learning";
-export async function dashboardData(userId: string) {
+export async function dashboardData(userId: string, language = "en") {
   await ensureDailyReminder(userId);
   const today = studyDate();
   const [
@@ -38,7 +38,7 @@ export async function dashboardData(userId: string) {
       orderBy: { date: "asc" },
     }),
     db.courseEnrollment.findMany({
-      where: { userId },
+      where: { userId, course: { language } },
       include: {
         course: {
           include: {
@@ -52,11 +52,11 @@ export async function dashboardData(userId: string) {
       },
     }),
     db.lessonProgress.findMany({
-      where: { userId },
+      where: { userId, lesson: { course: { language } } },
       include: { lesson: { include: { course: true } } },
       orderBy: { updatedAt: "desc" },
     }),
-    db.userVocabulary.count({ where: { userId, dueAt: { lte: new Date() } } }),
+    db.userVocabulary.count({ where: { userId, dueAt: { lte: new Date() }, vocabulary: { language } } }),
     db.userAchievement.findMany({
       where: { userId },
       include: { achievement: true },
@@ -64,13 +64,15 @@ export async function dashboardData(userId: string) {
     }),
     db.notification.count({ where: { userId, read: false } }),
     db.quizAttempt.findMany({
-      where: { userId },
+      where: { userId, quiz: { language } },
+      include: { answers: { include: { question: { select: { skill: true } } } } },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
     db.vocabularyReview.count({
       where: {
         userId,
+        vocabulary: { language },
         reviewedAt: { gte: new Date(`${today}T00:00:00+07:00`) },
       },
     }),
@@ -78,7 +80,7 @@ export async function dashboardData(userId: string) {
     db.learningPlan.findUnique({ where: { userId } }),
   ]);
   const recommended = await db.course.findMany({
-    where: { published: true },
+    where: { published: true, language },
     include: { _count: { select: { lessons: true } } },
     take: 3,
   });
@@ -91,6 +93,15 @@ export async function dashboardData(userId: string) {
         ),
       }
     : null;
+  const wordCount = await db.userVocabulary.count({ where: { userId, vocabulary: { language } } });
+  const skillScores: Record<string, number> = {};
+  for (const attempt of [...attempts].reverse()) {
+    for (const skill of ["vocabulary", "grammar", "reading", "listening"]) {
+      const answers = attempt.answers.filter((a) => a.question.skill === skill);
+      if (answers.length) skillScores[skill] = Math.round(100 * answers.filter((a) => a.correct).length / answers.length);
+    }
+  }
+  if (progress) { progress.wordsLearned = wordCount; progress.lessonsCompleted = lessonProgress.filter((p) => p.completed).length; progress.skillScores = skillScores; }
   const week = Array.from({ length: 7 }, (_, i) => {
     const day = studyDate(new Date(Date.now() - (6 - i) * 86400000));
     const g = goals.find((x) => x.date === day);
@@ -113,7 +124,7 @@ export async function dashboardData(userId: string) {
     attempts,
     reviewCount,
     allBadges,
-    plan,
+    plan: language === "en" ? plan : null,
     recommended,
   };
 }

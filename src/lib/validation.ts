@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { learningLanguageSchema } from "./languages";
 export const passwordSchema = z
   .string()
   .min(8, "Mật khẩu cần ít nhất 8 ký tự.")
@@ -41,8 +42,9 @@ export const noteSchema = z.object({
   resourceId: z.string().max(100).optional(),
 });
 export const courseSchema = z.object({
+  language: learningLanguageSchema.default("en"),
   title: z.string().trim().min(3).max(120),
-  level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
+  level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2", "Nhập môn", "Cơ bản", "Trung cấp", "Nâng cao"]),
   category: z.string().min(2).max(60),
   description: z.string().min(10).max(5000),
   duration: z.string().min(1).max(50),

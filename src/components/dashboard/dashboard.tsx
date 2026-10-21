@@ -26,6 +26,8 @@ import { useData } from "@/hooks/use-data";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/states";
 import { formatNumber } from "@/lib/utils";
 import type { DashboardData } from "@/services/dashboard";
+import { useLearningLanguage } from "@/components/learning/language-switcher";
+import { learningLanguages } from "@/lib/languages";
 export function PageHeading({
   title,
   description,
@@ -128,6 +130,7 @@ export function SkillProgress({ scores }: { scores: Record<string, number> }) {
   );
 }
 export function Dashboard() {
+  const language = useLearningLanguage();
   const { data, loading, error, refresh } =
     useData<DashboardData>("/dashboard");
   if (loading) return <LoadingSkeleton />;
@@ -154,7 +157,7 @@ export function Dashboard() {
     <>
       <PageHeading
         title={`Chào buổi sáng, ${name} 👋`}
-        description="Mỗi ngày một chút tiến bộ. Hôm nay mình học gì nhỉ?"
+        description={`${learningLanguages[language].name} · Nội dung và tiến độ bài học theo ngôn ngữ đang chọn. XP và nhịp học được tính chung cho tài khoản.`}
       >
         <span className="date-label">
           <CalendarDays size={14} />
@@ -318,7 +321,7 @@ export function Dashboard() {
                   </div>
                   <div className="recommended-body">
                     <Badge>
-                      {user.profile?.level || "A1"} · {type}
+                      {language === "zh" ? "Nhập môn" : user.profile?.level || "A1"} · {type}
                     </Badge>
                     <h3>{title}</h3>
                     <div>

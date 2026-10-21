@@ -1,5 +1,7 @@
 export function compareTranscript(expectedText: string, transcript: string) {
-  const tokens = (s: string) =>
+  const tokens = (s: string) => /\p{Script=Han}/u.test(expectedText)
+    ? Array.from(s.matchAll(/\p{Script=Han}/gu), (m) => m[0])
+    :
     s
       .toLowerCase()
       .replace(/[^a-z'\s]/g, "")

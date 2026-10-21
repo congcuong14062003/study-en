@@ -158,7 +158,7 @@ function ReadingWord({
       <Tooltip.Portal>
         <Tooltip.Content className="reading-gloss-tooltip" sideOffset={8} collisionPadding={12}>
           <strong>{token}</strong>
-          {entry?.ipa && <span className="reading-gloss-ipa">/{entry.ipa.replace(/^\/+|\/+$/g, "")}/</span>}
+          {(entry?.pinyin || entry?.ipa) && <span className="reading-gloss-ipa">{entry?.pinyin || `/${entry?.ipa?.replace(/^\/+|\/+$/g, "")}/`}</span>}
           <span className="reading-gloss-meaning">
             {entry?.meaning || automaticMeaning || (
               !vocabularyReady ? "Đang tải từ điển…" :

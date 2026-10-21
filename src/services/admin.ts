@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isAIConfigured } from "@/lib/ai-config";
 import { ApiError } from "@/lib/security";
 import { courseSchema } from "@/lib/validation";
+import { learningLanguageSchema } from "@/lib/languages";
 import { paginationMeta, readPagination } from "@/lib/pagination";
 import type { Prisma } from "@prisma/client";
 const str = z.string().min(1).max(12000);
@@ -10,19 +11,21 @@ const strings = z.array(z.string().max(500)).max(50);
 export const cmsSchemas = {
   courses: courseSchema,
   vocabulary: z.object({
+    language: learningLanguageSchema.default("en"),
+    pinyin: z.string().max(240).nullable().optional(),
     word: str,
     ipa: z.string().max(200).optional().default(""),
     meaning: str,
     definition: z
       .string()
       .trim()
-      .min(1, "Vui lòng nhập định nghĩa tiếng Anh.")
+      .min(1, "Vui lòng nhập định nghĩa.")
       .max(12000),
     partOfSpeech: str,
     example: str,
     translation: str,
     category: str,
-    level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
+    level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2", "Nhập môn", "Cơ bản", "Trung cấp", "Nâng cao"]),
     synonyms: strings,
     antonyms: strings,
     collocations: strings,
@@ -31,6 +34,7 @@ export const cmsSchemas = {
     imageUrl: z.string().regex(/^\/(?:uploads|vocabulary)\/[A-Za-z0-9._-]+\.(?:png|jpe?g|webp)$/).nullable().optional(),
   }),
   grammar: z.object({
+    language: learningLanguageSchema.default("en"),
     title: str,
     level: str,
     description: str,
@@ -40,6 +44,8 @@ export const cmsSchemas = {
     commonMistake: str,
   }),
   listening: z.object({
+    language: learningLanguageSchema.default("en"),
+    pinyin: z.string().max(12000).nullable().optional(),
     title: str,
     level: str,
     topic: str,
@@ -49,6 +55,8 @@ export const cmsSchemas = {
     audioUrl: z.url().startsWith("https://").nullable().optional(),
   }),
   reading: z.object({
+    language: learningLanguageSchema.default("en"),
+    pinyin: z.string().max(12000).nullable().optional(),
     title: str,
     level: str,
     category: str,
@@ -58,6 +66,7 @@ export const cmsSchemas = {
   }),
   questions: z
     .object({
+      language: learningLanguageSchema.default("en"),
       skill: z.enum(["vocabulary", "grammar", "reading", "listening"]),
       level: str,
       prompt: str,
@@ -389,18 +398,20 @@ export async function adminWrite(
     }
     case "lessons": {
       const data = cmsSchemas.lessons.parse(raw);
+      const course = await db.course.findUnique({ where: { id: data.courseId } });
+      if (!course) throw new ApiError("Không tìm thấy khóa học.", 404);
       const [words, questions, grammar, listening, reading] = await Promise.all(
         [
-          db.vocabulary.count({ where: { id: { in: data.vocabularyIds } } }),
-          db.question.count({ where: { id: { in: data.questionIds } } }),
+          db.vocabulary.count({ where: { id: { in: data.vocabularyIds }, language: course.language } }),
+          db.question.count({ where: { id: { in: data.questionIds }, language: course.language } }),
           data.grammarId
-            ? db.grammarLesson.findUnique({ where: { id: data.grammarId } })
+            ? db.grammarLesson.findFirst({ where: { id: data.grammarId, language: course.language } })
             : true,
           data.listeningId
-            ? db.listeningLesson.findUnique({ where: { id: data.listeningId } })
+            ? db.listeningLesson.findFirst({ where: { id: data.listeningId, language: course.language } })
             : true,
           data.readingId
-            ? db.readingArticle.findUnique({ where: { id: data.readingId } })
+            ? db.readingArticle.findFirst({ where: { id: data.readingId, language: course.language } })
             : true,
         ],
       );
@@ -413,7 +424,7 @@ export async function adminWrite(
         data.questionIds.length === 0
       )
         throw new ApiError(
-          "Tham chiếu nội dung không tồn tại, trùng lặp hoặc thiếu câu hỏi.",
+          "Nội dung không tồn tại, khác ngôn ngữ khóa học, trùng lặp hoặc thiếu câu hỏi.",
         );
       return db.$transaction(async (tx) => {
         const lesson = id
@@ -426,9 +437,10 @@ export async function adminWrite(
             lessonId: lesson.id,
             title: lesson.title,
             kind: "lesson",
+            language: course.language,
             questionIds: lesson.questionIds,
           },
-          update: { title: lesson.title, questionIds: lesson.questionIds },
+          update: { title: lesson.title, questionIds: lesson.questionIds, language: course.language },
         });
         return lesson;
       });

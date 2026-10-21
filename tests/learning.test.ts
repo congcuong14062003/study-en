@@ -212,7 +212,7 @@ describe("Admin content validation", () => {
     if (!missingDefinition.success) {
       assert.equal(
         missingDefinition.error.issues[0]?.message,
-        "Vui lòng nhập định nghĩa tiếng Anh.",
+        "Vui lòng nhập định nghĩa.",
       );
     }
   });

@@ -72,6 +72,7 @@ const titles: Record<string, string> = {
 };
 const templates: Record<string, Row> = {
   courses: {
+    language: "en",
     title: "",
     level: "A1",
     category: "Giao tiếp",
@@ -97,6 +98,8 @@ const templates: Record<string, Row> = {
     published: false,
   },
   vocabulary: {
+    language: "en",
+    pinyin: "",
     word: "",
     ipa: "",
     meaning: "",
@@ -113,6 +116,7 @@ const templates: Record<string, Row> = {
     imageUrl: "",
   },
   grammar: {
+    language: "en",
     title: "",
     level: "A1",
     description: "",
@@ -122,6 +126,8 @@ const templates: Record<string, Row> = {
     commonMistake: "",
   },
   listening: {
+    language: "en",
+    pinyin: "",
     title: "",
     level: "A1",
     topic: "Daily Life",
@@ -131,6 +137,8 @@ const templates: Record<string, Row> = {
     audioUrl: "",
   },
   reading: {
+    language: "en",
+    pinyin: "",
     title: "",
     level: "A1",
     category: "Daily life",
@@ -139,6 +147,7 @@ const templates: Record<string, Row> = {
     translation: "",
   },
   questions: {
+    language: "en",
     skill: "vocabulary",
     level: "A1",
     prompt: "",
@@ -153,7 +162,9 @@ const templates: Record<string, Row> = {
 const labels: Record<string, string> = {
   title: "Tên nội dung",
   name: "Họ tên",
-  level: "Trình độ CEFR",
+  language: "Ngôn ngữ (en: Anh · zh: Trung)",
+  pinyin: "Pinyin (tiếng Trung, tùy chọn)",
+  level: "Trình độ (CEFR cho tiếng Anh)",
   category: "Chủ đề",
   description: "Mô tả",
   duration: "Thời lượng",
@@ -170,10 +181,10 @@ const labels: Record<string, string> = {
   listeningId: "Mã bài nghe",
   readingId: "Mã bài đọc",
   questionIds: "Mã câu hỏi",
-  word: "Từ tiếng Anh",
+  word: "Từ vựng",
   ipa: "Phiên âm IPA (tùy chọn)",
   meaning: "Nghĩa tiếng Việt",
-  definition: "Định nghĩa tiếng Anh",
+  definition: "Định nghĩa",
   partOfSpeech: "Từ loại",
   example: "Ví dụ",
   translation: "Bản dịch",
@@ -760,6 +771,7 @@ export function AdminDashboard({
                           </span>
                         </>
                       ) : key === "level" ||
+                        key === "language" ||
                         key === "role" ||
                         key === "color" ||
                         key === "skill" ? (
@@ -767,11 +779,11 @@ export function AdminDashboard({
                           id={`cms-${key}`}
                           value={String(value)}
                           onChange={(e) =>
-                            setForm({ ...form, [key]: e.target.value })
+                            setForm({ ...form, [key]: e.target.value, ...(key === "language" && "level" in form ? { level: e.target.value === "zh" ? "Nhập môn" : "A1" } : {}) })
                           }
                         >
-                          {(key === "level"
-                            ? ["A1", "A2", "B1", "B2", "C1", "C2"]
+                          {(key === "language" ? ["en", "zh"] : key === "level"
+                            ? ["A1", "A2", "B1", "B2", "C1", "C2", "Nhập môn", "Cơ bản", "Trung cấp", "Nâng cao"]
                             : key === "role"
                               ? ["USER", "PREMIUM"]
                               : key === "skill"

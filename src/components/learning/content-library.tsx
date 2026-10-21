@@ -31,6 +31,7 @@ import {
   EmptyState,
 } from "@/components/ui/states";
 import { AudioButton, MediaAudioPlayer } from "./audio-player";
+import { VocabularyExampleAudio } from "./vocabulary-example-audio";
 import { InteractiveReadingText } from "./interactive-reading-text";
 import { FavoriteButton } from "./favorite-button";
 import {
@@ -41,6 +42,8 @@ import {
 } from "@/components/ui/dialog";
 import { MotionGrid, MotionItem } from "@/components/ui/motion";
 import type { Word } from "./vocabulary";
+import { useLearningLanguage } from "./language-switcher";
+import { learningLanguages, languageTextUnits } from "@/lib/languages";
 
 type Content = GrammarLesson | ListeningLesson | ReadingArticle;
 type ContentKind = "grammar" | "listening" | "reading";
@@ -141,7 +144,7 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
   const [translated, setTranslated] = useState(false);
   const [selected, setSelected] = useState<Word | null>(null);
   const wordMap = useMemo(() => new Map((words || []).map((word) => [word.id, word])), [words]);
-  const wordCount = article.body.trim().split(/\s+/).length;
+  const wordCount = languageTextUnits(article.body);
 
   return (
     <>
@@ -156,7 +159,7 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
           </div>
         </div>
         <span>
-          {wordCount} từ · {article.minutes} phút
+          {wordCount} {article.language === "zh" ? "chữ Hán" : "từ"} · {article.minutes} phút
         </span>
       </div>
       <Card className="section-card reading-surface">
@@ -171,7 +174,7 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
               size="sm"
               onClick={() => setTranslated(!translated)}
             >
-              {translated ? "Bản tiếng Anh" : "Xem bản dịch"}
+              {translated ? "Bản gốc" : "Xem bản dịch"}
             </Button>
           </div>
         </div>
@@ -185,6 +188,7 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
             />
           )}
         </article>
+        {article.pinyin && !translated && <p className="pinyin-support" lang="zh-Latn">Pinyin: {article.pinyin}</p>}
       </Card>
       <Dialog
         open={Boolean(selected)}
@@ -195,12 +199,13 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
         <DialogContent>
           <DialogTitle>{selected?.word}</DialogTitle>
           <DialogDescription>
-            {selected?.ipa} {selected?.ipa && "·"} {selected?.partOfSpeech}
+            {selected?.pinyin || selected?.ipa} {(selected?.pinyin || selected?.ipa) && "·"} {selected?.partOfSpeech}
           </DialogDescription>
           {selected && (
             <>
               <h3>{selected.meaning}</h3>
               <p className="mt-4">{selected.example}</p>
+              <VocabularyExampleAudio example={selected.example} />
               <div className="flex-row mt-4">
                 <AudioButton text={selected.word} label="Nghe phát âm" />
                 <FavoriteButton
@@ -246,6 +251,7 @@ export function ContentLibrary({
   kind: ContentKind;
   id?: string;
 }) {
+  const language = useLearningLanguage();
   const { data, loading, error, refresh } = useData<Content[] | Content>(
     `/${kind}${id ? `/${id}` : ""}`,
   );
@@ -336,6 +342,7 @@ export function ContentLibrary({
               translation={(data as ListeningLesson).translation}
               title={data.title}
             />
+            {(data as ListeningLesson).pinyin && <p className="pinyin-support" lang="zh-Latn">Pinyin: {(data as ListeningLesson).pinyin}</p>}
           </Card>
         ) : (
           <ReadingContent article={data as ReadingArticle} />
@@ -448,7 +455,7 @@ export function ContentLibrary({
           aria-label="Trình độ"
         >
           <option value="all">Tất cả trình độ</option>
-          {["A1", "A2", "B1", "B2", "C1", "C2"].map((value) => (
+          {learningLanguages[language].levels.map((value) => (
             <option key={value}>{value}</option>
           ))}
         </select>

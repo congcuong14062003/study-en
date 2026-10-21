@@ -41,8 +41,11 @@ import { MotionGrid, MotionItem } from "@/components/ui/motion";
 import { Pagination } from "@/components/ui/pagination";
 import type { PaginatedResponse } from "@/lib/pagination";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useLearningLanguage } from "@/components/learning/language-switcher";
+import { learningLanguages } from "@/lib/languages";
 export type CourseRecord = {
   id: string;
+  language: string;
   title: string;
   description: string;
   level: string;
@@ -216,6 +219,7 @@ export function CourseCard({ course }: { course: CourseRecord }) {
   );
 }
 export function Courses({ id, userId }: { id?: string; userId?: string }) {
+  const language = useLearningLanguage();
   const [q, setQ] = useState(""),
     [level, setLevel] = useState("all"),
     [category, setCategory] = useState("all"),
@@ -406,7 +410,7 @@ export function Courses({ id, userId }: { id?: string; userId?: string }) {
           }}
         >
           <option value="all">Tất cả trình độ</option>
-          {["A1", "A2", "B1", "B2", "C1", "C2"].map((l) => (
+          {learningLanguages[language].levels.map((l) => (
             <option key={l}>{l}</option>
           ))}
         </select>

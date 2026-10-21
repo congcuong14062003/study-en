@@ -33,6 +33,8 @@ import {
   EmptyState,
 } from "@/components/ui/states";
 import type { DashboardData } from "@/services/dashboard";
+import { useLearningLanguage } from "@/components/learning/language-switcher";
+import { learningLanguages } from "@/lib/languages";
 import { AIRecommendation } from "@/components/ai/ai-recommendation";
 import { CourseTimeline, type CourseRecord } from "@/components/course/courses";
 function StudyCoursePath({ courseId }: { courseId: string }) {
@@ -47,6 +49,7 @@ export function ProgressPages({
 }: {
   section: "analytics" | "calendar" | "achievements" | "study-plan";
 }) {
+  const language = useLearningLanguage();
   const { data, loading, error, refresh } =
     useData<DashboardData>("/dashboard");
   const [monthOffset, setMonthOffset] = useState(0);
@@ -104,12 +107,14 @@ export function ProgressPages({
       </>
     );
   if (section === "study-plan") {
-    const weeks = (data.plan?.weeks || [
+    const weeks = (data.plan?.weeks || (language === "zh" ? [
+      { week: 1, topic: "Chào hỏi và giới thiệu" }, { week: 2, topic: "Số đếm và gia đình" }, { week: 3, topic: "Ăn uống và thời gian" },
+    ] : [
       { week: 1, topic: "Daily routines" },
       { week: 2, topic: "Family & friends" },
       { week: 3, topic: "Work & study" },
       { week: 4, topic: "Travel & experiences" },
-    ]) as {
+    ])) as {
       week: number;
       topic: string;
     }[];
@@ -126,18 +131,18 @@ export function ProgressPages({
       <div className="content-narrow">
         <PageHeading
           title="Hành trình này là của bạn"
-          description={`${data.user.profile?.level || "A1"} · Mục tiêu ${data.user.profile?.goal.toLowerCase() || "giao tiếp"} · ${data.user.profile?.dailyMinutes || 20} phút mỗi ngày`}
+          description={`${learningLanguages[language].name} · ${language === "zh" ? "Nhập môn" : data.user.profile?.level || "A1"} · ${data.user.profile?.dailyMinutes || 20} phút mỗi ngày`}
         >
-          <Button asChild variant="outline" size="sm">
+          {language === "en" && <Button asChild variant="outline" size="sm">
             <Link href="/onboarding">Điều chỉnh lộ trình</Link>
-          </Button>
+          </Button>}
         </PageHeading>
         <Card className="plan-overview">
           <span className="icon-box">
             <Route size={26} />
           </span>
           <div>
-            <h2>English {data.user.profile?.level} Roadmap</h2>
+            <h2>{learningLanguages[language].name} · {language === "zh" ? "Nhập môn" : data.user.profile?.level} · Lộ trình</h2>
             <p>
               {done} / {total} bài học đã hoàn thành
             </p>

@@ -205,18 +205,21 @@ export async function removeVocabulary(userId: string, id: string) {
 const STARTER_FLASHCARD_COUNT = 30;
 
 /** Adds an immediately-due, beginner-friendly set of cards for a new learner. */
-export async function addStarterFlashcards(userId: string) {
+export async function addStarterFlashcards(userId: string, language = "en") {
   return db.$transaction(async (tx) => {
     await lockUser(tx, userId);
-    const vocabulary = await tx.vocabulary.findMany({
+    const levels = language === "zh" ? ["Nhập môn", "Cơ bản"] : ["A1", "A2"];
+    const candidates = await Promise.all(levels.map((level) => tx.vocabulary.findMany({
       where: {
-        level: { in: ["A1", "A2"] },
+        language,
+        level,
         users: { none: { userId } },
       },
-      orderBy: [{ level: "asc" }, { word: "asc" }],
+      orderBy: { word: "asc" },
       take: STARTER_FLASHCARD_COUNT,
       select: { id: true },
-    });
+    })));
+    const vocabulary = candidates.flat().slice(0, STARTER_FLASHCARD_COUNT);
     if (!vocabulary.length)
       throw new ApiError("Bạn đã thêm toàn bộ từ trong bộ khởi động.", 409);
 
@@ -373,7 +376,7 @@ export async function submitQuiz(
           },
         },
       });
-      if (quiz.kind === "placement") {
+      if (quiz.kind === "placement" && quiz.language === "en") {
         const level = cefrForScore(percent);
         await tx.profile.update({
           where: { userId },
@@ -393,7 +396,7 @@ export async function submitQuiz(
         xp,
         results,
         skillScores,
-        level: cefrForScore(percent),
+        level: quiz.language === "zh" ? "Nhập môn" : cefrForScore(percent),
         passed: percent >= 60,
       };
     },

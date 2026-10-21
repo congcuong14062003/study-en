@@ -19,6 +19,8 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeading } from "@/components/dashboard/dashboard";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/states";
 import type { WritingAnalysis } from "@/services/ai";
+import { useLearningLanguage } from "./language-switcher";
+import { languageTextUnits } from "@/lib/languages";
 type AIStatus = {
   configured: boolean;
   plan: "FREE" | "PREMIUM";
@@ -42,6 +44,7 @@ type Submission = {
   };
 };
 export function Writing() {
+  const language = useLearningLanguage();
   const { data, loading, error, refresh } =
     useData<WritingExercise[]>("/writing");
   const { data: status, refresh: refreshStatus } =
@@ -55,7 +58,7 @@ export function Writing() {
   const [analysis, setAnalysis] = useState<WritingAnalysis | null>(null);
   const [apiError, setApiError] = useState("");
   const [explain, setExplain] = useState(true);
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const words = languageTextUnits(text);
   async function analyze() {
     if (!data) return;
     setBusy(true);
@@ -109,7 +112,7 @@ export function Writing() {
   return (
     <>
       <PageHeading
-        title="Ý tưởng của bạn, bằng tiếng Anh."
+        title={language === "zh" ? "Ý tưởng của bạn, bằng tiếng Trung." : "Ý tưởng của bạn, bằng tiếng Anh."}
         description="Viết, nhận phản hồi có cấu trúc và xem lại tiến bộ của mình."
       >
         <Badge>
@@ -135,7 +138,7 @@ export function Writing() {
         <Card className="writing-editor">
           <div className="writing-prompt">
             <Badge>
-              {exercise.level} · {exercise.minWords}+ WORDS
+              {exercise.level} · {exercise.minWords}+ {language === "zh" ? "CHỮ HÁN" : "WORDS"}
             </Badge>
             <h2>{exercise.prompt}</h2>
           </div>
@@ -146,8 +149,8 @@ export function Writing() {
               if (analysis) setAnalysis(null);
             }}
             maxLength={10000}
-            aria-label="Bài viết tiếng Anh"
-            placeholder="Your words matter. Start writing here…"
+            aria-label={language === "zh" ? "Bài viết tiếng Trung" : "Bài viết tiếng Anh"}
+            placeholder={language === "zh" ? "在这里写中文… Viết tiếng Trung tại đây." : "Your words matter. Start writing here…"}
           />
           <div className="writing-toolbar">
             <span
@@ -155,7 +158,7 @@ export function Writing() {
                 words > 0 && words < exercise.minWords ? "orange-text" : ""
               }
             >
-              {words} từ · {text.length} ký tự
+              {words} {language === "zh" ? "chữ Hán" : "từ"} · {text.length} ký tự
             </span>
             <Button
               variant="outline"
@@ -181,7 +184,7 @@ export function Writing() {
           {words > 0 && words < exercise.minWords && (
             <p className="field-help">
               Bạn vẫn có thể phân tích, nhưng điểm đáp ứng đề bài có thể thấp vì
-              chưa đủ {exercise.minWords} từ.
+              chưa đủ {exercise.minWords} {language === "zh" ? "chữ Hán" : "từ"}.
             </p>
           )}
           {status && (

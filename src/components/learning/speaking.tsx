@@ -18,6 +18,7 @@ import { useData } from "@/hooks/use-data";
 import { api } from "@/lib/utils";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/states";
 import { AudioButton } from "./audio-player";
+import { speechLanguage } from "@/lib/languages";
 type Analysis = {
   recognizedAccuracy: number;
   missingWords: string[];
@@ -78,7 +79,7 @@ export function SpeakingRecorder({
       if (Recognition) {
         const r = new Recognition();
         recognition.current = r;
-        r.lang = "en-US";
+        r.lang = speechLanguage(text);
         r.continuous = true;
         r.interimResults = true;
         r.onresult = (e) => {
@@ -243,6 +244,7 @@ export function Speaking() {
           </button>
         ))}
       </div>
+      {ex?.pinyin && <p className="pinyin-support" lang="zh-Latn">Pinyin: {ex.pinyin}</p>}
       {ex && <SpeakingRecorder key={ex.id} text={ex.text} tip={ex.tip} />}
     </div>
   );

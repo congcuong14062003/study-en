@@ -21,7 +21,7 @@ export async function ensureDailyReminder(userId: string) {
       id: `reminder-${userId}-${date}`,
       userId,
       type: "reminder",
-      title: "Đến giờ dành một chút thời gian cho tiếng Anh",
+      title: `Đến giờ dành một chút thời gian cho ${profile.targetLanguage === "zh" ? "tiếng Trung" : "tiếng Anh"}`,
       body: `Mục tiêu của bạn là ${profile.dailyMinutes} phút. Bắt đầu một bài ngắn để giữ nhịp học nhé!`,
       href: "/dashboard",
     },

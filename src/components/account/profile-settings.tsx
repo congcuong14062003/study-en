@@ -78,7 +78,7 @@ export function ProfileSettings({ settings = false }: { settings?: boolean }) {
           <div className="profile-avatar">{initials(u.name)}</div>
           <div>
             <Badge>
-              {u.profile?.level || "A1"} · {u.subscription?.plan || "FREE"}
+              CEFR tiếng Anh: {u.profile?.level || "A1"} · {u.subscription?.plan || "FREE"}
             </Badge>
             <h1>{u.name}</h1>
             <p>

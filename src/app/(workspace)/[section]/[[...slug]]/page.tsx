@@ -21,6 +21,7 @@ import {
 } from "@/components/account/progress-pages";
 import { ProfileSettings } from "@/components/account/profile-settings";
 import { LoadingSkeleton } from "@/components/ui/states";
+import { learningLanguage } from "@/lib/languages";
 const ExamHub = nextDynamic(
   () => import("@/components/exams/exam-hub").then((m) => m.ExamHub),
   { loading: () => <LoadingSkeleton /> },
@@ -138,9 +139,9 @@ export default async function Page({ params, searchParams }: Props) {
     redirect(
       `/login?callbackUrl=${encodeURIComponent(`/${section}${id ? `/${id}` : ""}`)}`,
     );
-  if (user && section === "dashboard" && !user.profile?.onboardingComplete)
+  if (user && section === "dashboard" && learningLanguage(user.profile?.targetLanguage) === "en" && !user.profile?.onboardingComplete)
     redirect("/onboarding");
-  if (user && section === "dashboard" && !user.profile?.placementComplete)
+  if (user && section === "dashboard" && learningLanguage(user.profile?.targetLanguage) === "en" && !user.profile?.placementComplete)
     redirect("/placement-test");
   if (section === "admin" && user?.role !== "ADMIN") redirect("/forbidden");
   let content: React.ReactNode;
@@ -169,7 +170,7 @@ export default async function Page({ params, searchParams }: Props) {
     case "quiz":
       content = (
         <QuizPage
-          quizId={`practice-${["vocabulary", "grammar", "reading", "listening"].includes(String(query.type)) ? query.type : "vocabulary"}`}
+          quizId={`practice-${learningLanguage(user?.profile?.targetLanguage) === "zh" ? "zh-" : ""}${["vocabulary", "grammar", "reading", "listening"].includes(String(query.type)) ? query.type : "vocabulary"}`}
         />
       );
       break;
@@ -227,6 +228,7 @@ export default async function Page({ params, searchParams }: Props) {
   }
   return (
     <AppShell
+      key={`${user?.id || "guest"}:${user?.profile?.targetLanguage || "en"}`}
       user={
         user
           ? {
@@ -234,6 +236,7 @@ export default async function Page({ params, searchParams }: Props) {
               name: user.name,
               email: user.email,
               role: user.role,
+              targetLanguage: user.profile?.targetLanguage || "en",
               premiumActive: user.subscription?.plan === "PREMIUM" && user.subscription.status === "active" && (!user.subscription.currentPeriodEnd || user.subscription.currentPeriodEnd > new Date()),
               profile: user.profile ? { level: user.profile.level } : null,
             }

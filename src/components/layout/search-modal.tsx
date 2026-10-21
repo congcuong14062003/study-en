@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/utils";
+import { useLearningLanguage } from "@/components/learning/language-switcher";
 type Result = {
   id: string;
   title: string;
@@ -23,13 +24,15 @@ export function SearchModal({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const language = useLearningLanguage();
+  const minimum = language === "zh" ? 1 : 2;
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
     const controller = new AbortController();
-    if (q.trim().length < 2) {
+    if (q.trim().length < minimum) {
       setResults([]);
       return;
     }
@@ -51,7 +54,7 @@ export function SearchModal({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [q]);
+  }, [q, minimum]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -63,7 +66,7 @@ export function SearchModal({
           <Search size={20} />
           <input
             className="input"
-            placeholder="Nhập ít nhất 2 ký tự…"
+            placeholder={`Nhập ít nhất ${minimum} ký tự…`}
             aria-label="Nội dung cần tìm"
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -97,10 +100,10 @@ export function SearchModal({
                 <ArrowUpRight size={17} />
               </Link>
             ))
-          ) : q.length >= 2 ? (
+          ) : q.length >= minimum ? (
             <p>Không tìm thấy kết quả. Thử từ khóa khác nhé.</p>
           ) : (
-            <p>Thử “daily”, “travel” hoặc “present”.</p>
+            <p>{language === "zh" ? "Thử “你”, “茶” hoặc “gia đình”." : "Thử “daily”, “travel” hoặc “present”."}</p>
           )}
         </div>
       </DialogContent>

@@ -7,6 +7,7 @@ import { useData } from "@/hooks/use-data";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { LearningRecommendation } from "@/services/ai";
+import { useLearningLanguage } from "@/components/learning/language-switcher";
 type AIStatus = {
   configured: boolean;
   plan: "FREE" | "PREMIUM";
@@ -30,6 +31,7 @@ export function AIRecommendation({
 }: {
   fallback: [string, number] | undefined;
 }) {
+  const language = useLearningLanguage();
   const { data: status, refresh } = useData<AIStatus>("/ai/status");
   const [recommendation, setRecommendation] =
     useState<LearningRecommendation>();
@@ -107,7 +109,7 @@ export function AIRecommendation({
       <p>
         {fallback
           ? `Kết quả gần nhất cho thấy ${fallback[0]} đang ở ${fallback[1]}%. Hãy dành thêm một buổi luyện tập cho kỹ năng này.`
-          : "Hoàn thành bài kiểm tra đầu vào để có thêm dữ liệu cá nhân hóa."}
+          : language === "zh" ? "Hoàn thành một bài tiếng Trung hoặc bộ luyện tập để có dữ liệu gợi ý phù hợp." : "Hoàn thành bài kiểm tra đầu vào để có thêm dữ liệu cá nhân hóa."}
       </p>
       {status?.configured ? (
         <>
@@ -136,10 +138,10 @@ export function AIRecommendation({
                         ? fallback[0]
                         : "vocabulary") as keyof typeof skillRoutes
                     ]
-                  : "/placement-test"
+                  : language === "zh" ? "/quiz?type=vocabulary" : "/placement-test"
               }
             >
-              {fallback ? "Luyện tập kỹ năng này" : "Kiểm tra trình độ"}
+              {fallback ? "Luyện tập kỹ năng này" : language === "zh" ? "Luyện tiếng Trung" : "Kiểm tra trình độ"}
               <ArrowRight size={16} />
             </Link>
           </Button>

@@ -38,12 +38,15 @@ import { Button } from "@/components/ui/button";
 import { SearchModal } from "./search-modal";
 import { initials } from "@/lib/utils";
 import { PageMotion } from "@/components/ui/motion";
+import { LearningLanguageProvider, LanguageSwitcher } from "@/components/learning/language-switcher";
+import { learningLanguage } from "@/lib/languages";
 export type ShellUser = {
   id: string;
   name: string | null;
   email: string;
   role: string;
   premiumActive?: boolean;
+  targetLanguage?: string;
   profile?: {
     level: string;
   } | null;
@@ -133,7 +136,7 @@ export function AppShell({
       { href: "/profile", label: "Hồ sơ cá nhân" },
     ].find((l) => l.href === pathname || (l.href === "/exams" && pathname.startsWith("/exams/")))?.label || "Không gian học tập";
   return (
-    <>
+    <LearningLanguageProvider value={learningLanguage(user?.targetLanguage)}>
       <aside className="sidebar">
         <Brand />
         <div className="sidebar-scroll">
@@ -203,7 +206,7 @@ export function AppShell({
             <strong>{user?.name || "Khách tham quan"}</strong>
             <small>
               {user
-                ? `${user.profile?.level || "A1"} · Tài khoản ${user.premiumActive ? "Premium" : user.role === "ADMIN" ? "Admin" : "Free"}`
+                ? `${user.targetLanguage === "zh" ? "Nhập môn" : user.profile?.level || "A1"} · Tài khoản ${user.premiumActive ? "Premium" : user.role === "ADMIN" ? "Admin" : "Free"}`
                 : "Bắt đầu hành trình của bạn"}
             </small>
           </div>
@@ -231,6 +234,7 @@ export function AppShell({
             <strong>{title}</strong>
           </div>
           <div className="topbar-actions">
+            {user && !admin && <LanguageSwitcher />}
             <button
               className="search-trigger"
               onClick={() => setSearch(true)}
@@ -261,6 +265,9 @@ export function AppShell({
           </div>
         </header>
         <main className="workspace-main" id="main-content">
+          {user?.targetLanguage === "zh" && ["/exams", "/placement-test", "/onboarding"].some((path) => pathname.startsWith(path)) && (
+            <p className="notice">Mục này dành riêng cho tiếng Anh (CEFR/TOEIC/IELTS). Đổi sang tiếng Anh để xem lộ trình tương ứng; tiến độ tiếng Trung của bạn vẫn được giữ.</p>
+          )}
           <PageMotion>{children}</PageMotion>
         </main>
       </div>
@@ -284,6 +291,6 @@ export function AppShell({
         ))}
       </nav>
       <SearchModal open={search} onOpenChange={setSearch} />
-    </>
+    </LearningLanguageProvider>
   );
 }

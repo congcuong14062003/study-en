@@ -1,0 +1,59 @@
+{
+  "title": "3,000 Chinese vocabulary entries for Vietnamese learners",
+  "license": "CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "count": 3000,
+  "counts": {
+    "1": 388,
+    "2": 670,
+    "3": 898,
+    "4": 896,
+    "5": 148
+  },
+  "sha256": "33c16437fa6db8f50a9e8359d00ae2f701c1cf9d2bc63079d9242700e285908b",
+  "sources": [
+    {
+      "author": "Yanis Zafirópulos; upstream CC-CEDICT contributors, clem109/hsk-vocabulary and elkmovie/hsk30",
+      "project": "Complete HSK Vocabulary (new-1 through new-6 labels and dictionary definitions)",
+      "url": "https://github.com/drkameleon/complete-hsk-vocabulary",
+      "revision": "7ac65bf1a6387d35f1ade478906172a19311c7f9",
+      "license": "MIT code; CC BY-SA 4.0 dictionary data",
+      "notice": "MIT License\n\nCopyright (c) 2026 Yanis Zafirópulos\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+    },
+    {
+      "author": "Phong Phan / CVDICT; CC-CEDICT contributors; mirror by thaoshibe",
+      "project": "Chinese–Vietnamese dictionary",
+      "url": "https://github.com/thaoshibe/chugiai-zh-en-vi",
+      "original": "https://github.com/ph0ngp/CVDICT",
+      "revision": "9ab0b8ea1d3749b0039ec2fea52ea050eec012ab",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "author": "no7z / hsk-sentences-audio contributors; CC-CEDICT contributors",
+      "project": "Chinese sentence text and Pinyin; not the audio files",
+      "url": "https://github.com/no7z/hsk-sentences-audio",
+      "revision": "857dfbab91027ebd97df01260e91b817cb6b4854",
+      "license": "CC BY-SA 4.0"
+    }
+  ],
+  "changes": "Selected 3,000 additional Han headwords outside the hand-authored starter pack. Matched dictionary/example readings, chose shortest low-level token-matched example, reformatted fields, mapped upstream new-N categories to app levels. No audio copied. No Vietnamese sentence translations synthesized; these remain empty for existing on-demand translation.",
+  "caveat": "Community dictionary translations and sentence data may contain errors. Levels use upstream new-N (HSK 3.0 / 2021) labels, not CEFR or an official curriculum. Vietnamese example translations require separately configured AI on demand.",
+  "downloads": [
+    {
+      "url": "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/complete.json",
+      "sha256": "c869a0ce353279c9333d9b42c31fc3549785e8b40673dab57ee42bc99cd14131"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/LICENSE",
+      "sha256": "21094287f6e487f6978cf240c67603e4a0e9f341c6e732558d052feb44210c8f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/no7z/hsk-sentences-audio/857dfbab91027ebd97df01260e91b817cb6b4854/dist/sentences.json",
+      "sha256": "8f8ffd34eee29f395724ce060cad22511eeeabb7af731d5b5879dc0548e01660"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/thaoshibe/chugiai-zh-en-vi/9ab0b8ea1d3749b0039ec2fea52ea050eec012ab/cvdict_full.json",
+      "sha256": "05fd5ba71054496c373c9dfe92bc714e1e5c3799e98c1e1f57a79f22026f6d7b"
+    }
+  ]
+}

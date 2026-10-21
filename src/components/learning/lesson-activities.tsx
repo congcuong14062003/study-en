@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/utils";
 import { useData } from "@/hooks/use-data";
 import type { GlossaryEntry } from "@/lib/reading-glossary";
-import { insertSentenceToken, type SentenceToken } from "@/lib/sentence-order";
+import { insertSentenceToken, tokenizeSentence, type SentenceToken } from "@/lib/sentence-order";
+import { languageTextUnits, speechLanguage } from "@/lib/languages";
 import type { PublicQuiz } from "@/services/content";
 import { AudioButton, speak } from "./audio-player";
 import { InteractiveReadingText } from "./interactive-reading-text";
@@ -92,6 +93,7 @@ export function WordMatch({ words, onComplete }: { words: Vocabulary[]; onComple
             >
               {matched.includes(word.id) && <Check size={15} />}
               <strong>{word.word}</strong>
+              {word.pinyin && <small>{word.pinyin}</small>}
               <small>{word.partOfSpeech}</small>
             </button>
           ))}
@@ -120,9 +122,7 @@ export function WordMatch({ words, onComplete }: { words: Vocabulary[]; onComple
 }
 
 function tokenize(sentence: string): SentenceToken[] {
-  return (sentence.match(/[A-Za-zÀ-ỹ0-9']+|[.,!?;:]/g) || []).map(
-    (value, index) => ({ id: `token-${index}-${value}`, value }),
-  );
+  return tokenizeSentence(sentence);
 }
 
 function normalize(tokens: SentenceToken[]) {
@@ -310,6 +310,7 @@ export function SentenceBuilder({ sentence, onComplete }: { sentence: string; on
 }
 
 function wordPattern(word: string) {
+  if (/\p{Script=Han}/u.test(word)) return new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "u");
   return new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
 }
 export function hasListeningGap(word: Vocabulary) {
@@ -336,7 +337,7 @@ export function ListeningCloze({ word, onComplete }: { word: Vocabulary; onCompl
       </div>
       <div className="listen-cloze-audio">
         <AudioButton text={word.example} label="Nghe câu" />
-        <Button variant="outline" size="sm" onClick={() => speak(word.example, "en-US", 0.75)}>Nghe chậm</Button>
+        <Button variant="outline" size="sm" onClick={() => speak(word.example, speechLanguage(word.example), 0.75)}>Nghe chậm</Button>
       </div>
       <p className="listen-cloze-sentence">{masked}</p>
       <form onSubmit={(event) => { event.preventDefault(); check(); }} className="listen-cloze-form">
@@ -421,7 +422,8 @@ export function MiniWriting({
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const chinese = suggestedWords.some((word) => /\p{Script=Han}/u.test(word));
+  const wordCount = languageTextUnits(text);
 
   async function save() {
     setBusy(true);
@@ -476,11 +478,11 @@ export function MiniWriting({
       <textarea
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder="Write your answer in English…"
+        placeholder={chinese ? "Viết câu bằng chữ Hán giản thể…" : "Write your answer in English…"}
         maxLength={1200}
       />
       <div className="activity-actions">
-        <span>{wordCount} từ · mục tiêu 20+</span>
+        <span>{wordCount} {chinese ? "chữ Hán · mục tiêu 10+" : "từ · mục tiêu 20+"}</span>
         <Button disabled={busy || wordCount < 3} onClick={save}>
           {busy ? (
             <Loader2 size={15} className="spin" />

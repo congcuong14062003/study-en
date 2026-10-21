@@ -75,6 +75,7 @@ model Profile {
   notificationsEnabled Boolean @default(true)
   publicLeaderboard Boolean @default(false)
   language String @default("vi")
+  targetLanguage String @default("en")
   onboardingComplete Boolean @default(false)
   placementComplete Boolean @default(false)
 }
@@ -116,6 +117,7 @@ model PasswordReset {
 }
 model Course {
   id String @id @default(cuid())
+  language String @default("en")
   title String
   level String
   category String
@@ -174,6 +176,8 @@ model LessonProgress {
 }
 model Vocabulary {
   id String @id @default(cuid())
+  language String @default("en")
+  pinyin String?
   word String @unique
   ipa String
   meaning String
@@ -218,6 +222,7 @@ model VocabularyReview {
 }
 model GrammarLesson {
   id String @id @default(cuid())
+  language String @default("en")
   title String
   level String
   description String @db.Text
@@ -228,6 +233,8 @@ model GrammarLesson {
 }
 model ListeningLesson {
   id String @id @default(cuid())
+  language String @default("en")
+  pinyin String?
   title String
   level String
   topic String
@@ -238,6 +245,8 @@ model ListeningLesson {
 }
 model ReadingArticle {
   id String @id @default(cuid())
+  language String @default("en")
+  pinyin String?
   title String
   level String
   category String
@@ -247,6 +256,7 @@ model ReadingArticle {
 }
 model WritingExercise {
   id String @id @default(cuid())
+  language String @default("en")
   title String
   type String
   level String
@@ -266,6 +276,8 @@ model WritingSubmission {
 }
 model SpeakingExercise {
   id String @id @default(cuid())
+  language String @default("en")
+  pinyin String?
   title String
   level String
   text String
@@ -273,6 +285,7 @@ model SpeakingExercise {
 }
 model Quiz {
   id String @id @default(cuid())
+  language String @default("en")
   title String
   kind String @default("practice")
   lessonId String?
@@ -282,6 +295,7 @@ model Quiz {
 }
 model Question {
   id String @id @default(cuid())
+  language String @default("en")
   skill String
   level String
   prompt String @db.Text
@@ -488,6 +502,7 @@ model PaymentImage {
 }
 model AIConversation {
   id String @id @default(cuid())
+  language String @default("en")
   userId String
   title String?
   scenario String

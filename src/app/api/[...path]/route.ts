@@ -37,6 +37,8 @@ import { paginationMeta, readPagination } from "@/lib/pagination";
 import { examCatalog, readExamAttempt, saveExamAnswers, startExam, submitExam } from "@/services/exams";
 import { examModeSchema } from "@/lib/exams";
 import type { Prisma } from "@prisma/client";
+import { learningLanguage } from "@/lib/languages";
+import { selectLearningLanguage } from "@/services/languages";
 type Context = {
   params: Promise<{
     path: string[];
@@ -47,6 +49,7 @@ export async function GET(request: Request, { params }: Context) {
     const { path } = await params;
     const [resource, id, action] = path;
     const url = new URL(request.url);
+    const language = learningLanguage((await currentUser())?.profile?.targetLanguage);
     let data: unknown;
     switch (resource) {
       case "exams": {
@@ -80,6 +83,7 @@ export async function GET(request: Request, { params }: Context) {
         const category = url.searchParams.get("category");
         const where: Prisma.CourseWhereInput = {
           published: true,
+          ...(!id ? { language } : {}),
           ...(id ? { id } : {}),
           ...(level ? { level } : {}),
           ...(category ? { category } : {}),
@@ -140,7 +144,7 @@ export async function GET(request: Request, { params }: Context) {
             }),
             db.course.count({ where }),
             db.course.findMany({
-              where: { published: true },
+              where: { published: true, language },
               distinct: ["category"],
               select: { category: true },
               orderBy: { category: "asc" },
@@ -168,7 +172,7 @@ export async function GET(request: Request, { params }: Context) {
         const user = await requireUser();
         if (action === "reviews" || id === "reviews") {
           data = await db.userVocabulary.findMany({
-            where: { userId: user.id, dueAt: { lte: new Date() } },
+            where: { userId: user.id, dueAt: { lte: new Date() }, vocabulary: { language } },
             include: { vocabulary: true },
             orderBy: { dueAt: "asc" },
             take: 50,
@@ -177,7 +181,8 @@ export async function GET(request: Request, { params }: Context) {
         }
         if (!id && url.searchParams.get("glossary") === "1") {
           data = await db.vocabulary.findMany({
-            select: { id: true, word: true, meaning: true, ipa: true, partOfSpeech: true },
+            where: { language },
+            select: { id: true, word: true, meaning: true, ipa: true, pinyin: true, partOfSpeech: true },
             orderBy: { word: "asc" },
           });
           break;
@@ -187,6 +192,7 @@ export async function GET(request: Request, { params }: Context) {
         const category = url.searchParams.get("category");
         const learnedOnly = url.searchParams.get("status") === "learned";
         const where: Prisma.VocabularyWhereInput = {
+          language,
           ...(id ? { id } : {}),
           ...(level ? { level } : {}),
           ...(category ? { category } : {}),
@@ -195,6 +201,7 @@ export async function GET(request: Request, { params }: Context) {
             ? {
                 OR: [
                   { word: { contains: query, mode: "insensitive" } },
+                  { pinyin: { contains: query, mode: "insensitive" } },
                   { meaning: { contains: query, mode: "insensitive" } },
                   { definition: { contains: query, mode: "insensitive" } },
                 ],
@@ -217,12 +224,13 @@ export async function GET(request: Request, { params }: Context) {
               }),
               db.vocabulary.count({ where }),
               db.vocabulary.findMany({
+                where: { language },
                 distinct: ["category"],
                 select: { category: true },
                 orderBy: { category: "asc" },
               }),
-              db.vocabulary.count(),
-              db.userVocabulary.count({ where: { userId: user.id } }),
+              db.vocabulary.count({ where: { language } }),
+              db.userVocabulary.count({ where: { userId: user.id, vocabulary: { language } } }),
             ]);
           const learned = await db.userVocabulary.findMany({
             where: {
@@ -261,48 +269,48 @@ export async function GET(request: Request, { params }: Context) {
       case "grammar":
         await requireUser();
         data = id
-          ? await db.grammarLesson.findUnique({ where: { id } })
-          : await db.grammarLesson.findMany({ orderBy: { id: "asc" } });
+          ? await db.grammarLesson.findFirst({ where: { id, language } })
+          : await db.grammarLesson.findMany({ where: { language }, orderBy: { id: "asc" } });
         break;
       case "listening":
         await requireUser();
         data = id
-          ? await db.listeningLesson.findUnique({ where: { id } })
-          : await db.listeningLesson.findMany();
+          ? await db.listeningLesson.findFirst({ where: { id, language } })
+          : await db.listeningLesson.findMany({ where: { language } });
         break;
       case "reading":
         await requireUser();
         data = id
-          ? await db.readingArticle.findUnique({ where: { id } })
-          : await db.readingArticle.findMany();
+          ? await db.readingArticle.findFirst({ where: { id, language } })
+          : await db.readingArticle.findMany({ where: { language } });
         break;
       case "writing": {
         const user = await requireUser();
         data =
           id === "submissions"
             ? await db.writingSubmission.findMany({
-                where: { userId: user.id },
+                where: { userId: user.id, exercise: { language } },
                 include: {
                   exercise: { select: { id: true, title: true, level: true } },
                 },
                 orderBy: { createdAt: "desc" },
                 take: 20,
               })
-            : await db.writingExercise.findMany();
+            : await db.writingExercise.findMany({ where: { language } });
         break;
       }
       case "speaking":
         await requireUser();
-        data = await db.speakingExercise.findMany();
+        data = await db.speakingExercise.findMany({ where: { language } });
         break;
       case "quiz":
         data = await publicQuiz(
-          id || "practice-vocabulary",
+          id || (language === "zh" ? "practice-zh-vocabulary" : "practice-vocabulary"),
           (await requireUser()).id,
         );
         break;
       case "dashboard":
-        data = await dashboardData((await requireUser()).id);
+        data = await dashboardData((await requireUser()).id, language);
         break;
       case "lessons":
         data = await lessonData(id, (await requireUser()).id);
@@ -335,11 +343,11 @@ export async function GET(request: Request, { params }: Context) {
         else
           data = id
             ? await db.aIConversation.findFirst({
-                where: { id, userId: user.id },
+                where: { id, userId: user.id, language },
                 include: { messages: { orderBy: { createdAt: "asc" } } },
               })
             : await db.aIConversation.findMany({
-                where: { userId: user.id },
+                where: { userId: user.id, language },
                 orderBy: { updatedAt: "desc" },
                 take: 30,
               });
@@ -388,15 +396,17 @@ export async function GET(request: Request, { params }: Context) {
       case "search": {
         await requireUser();
         const q = (url.searchParams.get("q") || "").trim().slice(0, 100);
-        if (q.length < 2) {
+        if (q.length < (language === "zh" ? 1 : 2)) {
           data = [];
           break;
         }
         const [words, courses, lessons, grammar, reading] = await Promise.all([
           db.vocabulary.findMany({
             where: {
+              language,
               OR: [
                 { word: { contains: q, mode: "insensitive" } },
+                { pinyin: { contains: q, mode: "insensitive" } },
                 { meaning: { contains: q, mode: "insensitive" } },
               ],
             },
@@ -404,6 +414,7 @@ export async function GET(request: Request, { params }: Context) {
           }),
           db.course.findMany({
             where: {
+              language,
               published: true,
               title: { contains: q, mode: "insensitive" },
             },
@@ -412,17 +423,17 @@ export async function GET(request: Request, { params }: Context) {
           db.lesson.findMany({
             where: {
               published: true,
-              course: { published: true },
+              course: { published: true, language },
               title: { contains: q, mode: "insensitive" },
             },
             take: 4,
           }),
           db.grammarLesson.findMany({
-            where: { title: { contains: q, mode: "insensitive" } },
+            where: { language, title: { contains: q, mode: "insensitive" } },
             take: 4,
           }),
           db.readingArticle.findMany({
-            where: { title: { contains: q, mode: "insensitive" } },
+            where: { language, title: { contains: q, mode: "insensitive" } },
             take: 4,
           }),
         ]);
@@ -492,6 +503,12 @@ async function mutate(request: Request, { params }: Context) {
         if (!id || action !== "start" || request.method !== "POST") throw new ApiError("Hành động không hợp lệ.", 405);
         const { mode } = z.object({ mode: examModeSchema }).parse(raw);
         data = await startExam(user.id, id, mode);
+        break;
+      }
+      case "learning-language": {
+        if (request.method !== "POST" || id) throw new ApiError("Hành động không hợp lệ.", 405);
+        const value = z.object({ language: z.string() }).parse(raw);
+        data = await selectLearningLanguage(user.id, value.language);
         break;
       }
       case "exam-attempts": {
@@ -606,7 +623,7 @@ async function mutate(request: Request, { params }: Context) {
           break;
         }
         if (id === "starter-pack") {
-          data = await addStarterFlashcards(user.id);
+          data = await addStarterFlashcards(user.id, learningLanguage(user.profile?.targetLanguage));
           break;
         }
         if (id !== "review") throw new ApiError("Hành động không hợp lệ.");

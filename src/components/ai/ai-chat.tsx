@@ -1,4 +1,6 @@
 "use client";
+import { useLearningLanguage } from "@/components/learning/language-switcher";
+import { learningLanguages } from "@/lib/languages";
 import { useEffect, useRef, useState } from "react";
 import {
   Coffee,
@@ -58,6 +60,7 @@ const scenarios = [
   "Making Friends",
 ];
 export function AIChat() {
+  const language = useLearningLanguage();
   const { data: status, refresh: refreshStatus } =
     useData<AIStatus>("/ai/status");
   const { data: history, refresh: refreshHistory } =
@@ -159,7 +162,7 @@ export function AIChat() {
     }
     const instance = new Recognition();
     recognition.current = instance;
-    instance.lang = "en-US";
+    instance.lang = learningLanguages[language].speech;
     instance.continuous = false;
     instance.interimResults = false;
     instance.onresult = (event) =>
@@ -185,7 +188,7 @@ export function AIChat() {
     <>
       <PageHeading
         title="Một cuộc trò chuyện. Thêm tự tin."
-        description="Luyện giao tiếp theo tình huống cùng giáo viên tiếng Anh AI."
+        description={`Luyện giao tiếp theo tình huống cùng giáo viên ${language === "zh" ? "tiếng Trung" : "tiếng Anh"} AI.`}
       >
         <Badge>
           <Sparkles size={12} /> AI Tutor
@@ -305,17 +308,17 @@ export function AIChat() {
                 <span className="icon-box purple">
                   <Coffee size={33} />
                 </span>
-                <h2>Let’s talk about {scenario.toLowerCase()}.</h2>
+                <h2>{language === "zh" ? "我们一起练习中文吧！" : `Let’s talk about ${scenario.toLowerCase()}.`}</h2>
                 <p>
                   Hãy bắt đầu bằng một lời chào. AI sẽ điều chỉnh câu trả lời
-                  theo trình độ CEFR của bạn.
+                  {language === "zh" ? "bằng chữ Hán giản thể, kèm Pinyin và giải thích tiếng Việt." : "theo trình độ CEFR của bạn."}
                 </p>
                 <div className="starter-prompts">
-                  {[
+                  {(language === "zh" ? ["你好！我们可以练习中文吗？", "请帮我介绍自己。", "我想学习日常对话。"] : [
                     "Hi! Can we practice a conversation?",
                     "Could you help me introduce myself?",
                     "I go to school yesterday. Is that correct?",
-                  ].map((text) => (
+                  ]).map((text) => (
                     <button key={text} onClick={() => setMessage(text)}>
                       {text}
                       <Send size={13} />

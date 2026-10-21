@@ -1,4 +1,10 @@
 export type SentenceToken = { id: string; value: string };
+export function tokenizeSentence(sentence: string): SentenceToken[] {
+  const values = /\p{Script=Han}/u.test(sentence)
+    ? Array.from(new Intl.Segmenter("zh", { granularity: "word" }).segment(sentence), (part) => part.segment).filter((value) => value.trim())
+    : sentence.match(/[A-Za-zÀ-ỹ0-9']+|[.,!?;:]/g) || [];
+  return values.map((value, index) => ({ id: `token-${index}-${value}`, value }));
+}
 
 /** Insert a token before the item at targetIndex, from either the bank or the answer. */
 export function insertSentenceToken(
