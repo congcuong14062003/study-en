@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type HanziWriter from "hanzi-writer";
 import { Lightbulb, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HanziWritingRules } from "@/components/learning/hanzi-writing-rules";
 import { createHanziPracticeTarget } from "@/lib/hanzi-practice-target";
 import { loadHanziStrokeData } from "@/lib/hanzi-strokes";
 
@@ -88,6 +89,7 @@ export function HanziWritingPractice({ character, onComplete }: { character: str
 
   return (
     <div className="hanzi-practice">
+      <HanziWritingRules />
       <div className="hanzi-practice-surface">
         <svg className="hanzi-practice-guides" viewBox="0 0 1024 1024" aria-hidden="true"><path className="hanzi-guides" d="M0 512H1024M512 0V1024M0 0L1024 1024M1024 0L0 1024" /></svg>
         <div ref={host} className="hanzi-practice-host" />

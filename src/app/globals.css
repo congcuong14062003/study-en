@@ -7989,15 +7989,27 @@ tbody > tr:hover {
 .flashcard-example-tools > .audio-button { flex-wrap: wrap; max-width: 100%; }
 .hanzi-mode-picker { display: flex; gap: 8px; margin-bottom: 12px; }
 .hanzi-mode-picker .btn { min-height: 40px; }
+.hanzi-writing-rules { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.hanzi-writing-rules h3 { margin: 0 0 6px; font-size: 14px; }
+.hanzi-writing-rules ul { margin: 0; padding-left: 18px; list-style: disc; }
+.hanzi-writing-rules li + li { margin-top: 4px; }
+.hanzi-writing-rules summary { padding-block: 10px; cursor: pointer; color: var(--primary); min-height: 44px; }
+.hanzi-writing-rules summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+.hanzi-writing-rules p { margin: 8px 0 0; font-size: inherit; line-height: inherit; }
+.hanzi-writing-rules a { display: inline-block; margin-top: 8px; color: var(--primary); text-decoration: underline; }
+.hanzi-writing-rules .hanzi-writing-rules-note { color: var(--muted); font-size: 12px; }
 .hanzi-practice-surface { width: min(100%, 280px); aspect-ratio: 1; position: relative; margin-inline: auto; border: 1px solid var(--line); background: var(--bg); }
 .hanzi-practice-guides { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .hanzi-practice-host { position: relative; width: 100%; height: 100%; touch-action: none; user-select: none; }
 .hanzi-practice-host > svg { display: block; max-width: 100%; touch-action: none; }
 .hanzi-word-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin-top: 16px; color: var(--muted); font-size: 12px; }
+.dictionary-entry > .flex-row.mt-4 { flex-wrap: wrap; }
+.dictionary-entry .audio-button { max-width: 100%; flex-wrap: wrap; }
 @media (max-width: 480px) {
   .dialog-content.hanzi-dialog { padding: 22px 16px; max-height: calc(100dvh - 32px); }
   .hanzi-controls .btn { padding-inline: 10px; font-size: 12px; gap: 5px; }
   .hanzi-writing-grid { width: min(100%, 240px); }
+  .hanzi-practice-surface { width: min(100%, 240px); }
 }
 
 /* Workspace navigation: the drawer and desktop sidebar share the same routes. */

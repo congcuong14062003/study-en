@@ -20,6 +20,7 @@ function TextTools({ text, pinyin, language }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const id = useId();
+  const actionLabel = error ? "Thử lại Bính âm" : open ? "Ẩn Bính âm" : "Xem Bính âm";
   async function togglePinyin() {
     if (open && !error) { setOpen(false); return; }
     setOpen(true);
@@ -34,8 +35,8 @@ function TextTools({ text, pinyin, language }: Props) {
     <div className="chinese-text-tools">
       <div className="chinese-text-actions">
         <Button type="button" size="sm" variant="outline" aria-expanded={open} aria-controls={id}
-          aria-label={`${open ? "Ẩn" : "Xem"} Bính âm: ${text}`} disabled={busy} onClick={() => void togglePinyin()}>
-          {busy ? <Loader2 size={15} className="spin" /> : <Languages size={15} />}{open ? "Ẩn Bính âm" : "Xem Bính âm"}
+          aria-label={`${actionLabel}: ${text}`} disabled={busy} onClick={() => void togglePinyin()}>
+          {busy ? <Loader2 size={15} className="spin" /> : <Languages size={15} />}{actionLabel}
         </Button>
         <HanziStrokeOrder text={text} pinyin={pinyin} language={language} />
         <HanziStrokeOrder text={text} pinyin={pinyin} language={language} initialMode="practice" />
