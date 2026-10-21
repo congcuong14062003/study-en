@@ -93,7 +93,7 @@ export function WordMatch({ words, onComplete }: { words: Vocabulary[]; onComple
             >
               {matched.includes(word.id) && <Check size={15} />}
               <strong>{word.word}</strong>
-              {word.pinyin && <small>{word.pinyin}</small>}
+              {word.pinyin && <small className="match-pinyin" lang="zh-Latn">{word.pinyin}</small>}
               <small>{word.partOfSpeech}</small>
             </button>
           ))}

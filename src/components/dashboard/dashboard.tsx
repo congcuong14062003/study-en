@@ -236,7 +236,7 @@ export function Dashboard() {
               </div>
               <div className="continue-art" aria-hidden="true">
                 <MessageCircle />
-                <span className="hello-label">Hello!</span>
+                <span className="hello-label">{language === "zh" ? "你好!" : "Hello!"}</span>
                 <span className="sound-label">
                   <AudioLines size={35} />
                 </span>
