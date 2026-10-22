@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { seedChineseCourses } from "./chinese-course-seed";
 type Word = [string, string, string, string, string];
 export const chineseTopics: { id: string; title: string; grammar: string; formula: string; reading: string; pinyin: string; translation: string; question: string; options: string[]; words: Word[] }[] = [
   { id: "greetings", title: "你好 · Chào hỏi và lịch sự", grammar: "Những lời chào đầu tiên", formula: "你好！ / 谢谢！ / 再见！", reading: "你好！谢谢你。再见！", pinyin: "Nǐ hǎo! Xièxie nǐ. Zàijiàn!", translation: "Xin chào! Cảm ơn bạn. Tạm biệt!", question: "Người nói nói gì trước tiên?", options: ["Xin chào", "Chúc ngủ ngon", "Tôi đói"], words: [
@@ -63,6 +64,8 @@ export async function seedChinese(db: PrismaClient) {
     const writing = { id: `${prefix}-writing`, language: "zh", title: topic.title, type: "Viết câu tiếng Trung", level: "Nhập môn", prompt: `Viết 2–3 câu bằng chữ Hán giản thể theo chủ đề “${topic.title}”. Gợi ý: ${topic.words.map((v) => v[0]).join("、")}.`, minWords: 10 };
     await db.writingExercise.upsert({ where: { id: writing.id }, create: writing, update: writing });
   }
+  const expanded = await seedChineseCourses(db);
+  for (const [skill, ids] of Object.entries(expanded)) allIds[skill].push(...ids);
   for (const [skill, questionIds] of Object.entries(allIds)) {
     const quiz = { id: `practice-zh-${skill}`, language: "zh", title: `Tiếng Trung · ${skill}`, kind: "practice", questionIds };
     await db.quiz.upsert({ where: { id: quiz.id }, create: quiz, update: quiz });

@@ -138,7 +138,11 @@ Kiểm thử: `pnpm test`, `pnpm typecheck`; khi dev server và PostgreSQL local
 
 Khóa học/bản đồ, từ vựng, flashcard, ngữ pháp, nghe, nói, đọc, viết, bài luyện tập, tìm kiếm và hội thoại AI được lọc theo ngôn ngữ học. Tiến độ bài, từ đang học, lịch ôn và điểm kỹ năng được xem riêng theo ngôn ngữ; XP, chuỗi ngày, thời gian học, mục tiêu ngày và gói Premium dùng chung tài khoản. Kiểm tra CEFR, điều chỉnh lộ trình tiếng Anh và bộ đề TOEIC/IELTS vẫn là nội dung **tiếng Anh**, có thông báo rõ khi truy cập từ chế độ tiếng Trung.
 
-Bộ tiếng Trung ban đầu dùng **chữ giản thể + Pinyin + nghĩa tiếng Việt**: 6 bài, 24 từ biên soạn riêng, 6 bài nghe/đọc/nói/viết, 24 câu hỏi và 4 bộ luyện tập kỹ năng. Thư viện bổ sung thêm **3.000 từ** có nghĩa Việt, Pinyin và câu ví dụ tiếng Trung (tổng 3.024 từ khi nhập mới), chia chủ đề theo nhãn HSK 3.0/2021 của nguồn cộng đồng. Đây không phải giáo trình đầy đủ hoặc khóa luyện thi HSK chính thức. Quản trị viên có thể chọn `language` khi tạo/sửa nội dung và nhập Pinyin; nội dung gắn vào bài học phải cùng ngôn ngữ với khóa học. Từ vựng vẫn giữ ràng buộc `word` duy nhất toàn hệ thống để tương thích các bộ nhập hiện tại; nếu mở rộng các ngôn ngữ có cách viết trùng nhau, cần nâng cấp khóa này và các script nhập dữ liệu.
+Bộ tiếng Trung dùng **chữ giản thể + Pinyin + nghĩa tiếng Việt**. Ngoài khóa nhập môn 6 bài, có **10 khóa mới × 4 bài**, tổng **11 khóa, 46 bài, 184 câu hỏi**: nhịp sống mỗi ngày, gọi món, mua sắm, hỏi đường, du lịch/khách sạn, giao tiếp bạn bè, sức khỏe/hỗ trợ, học tập/công việc, kể chuyện/trải nghiệm, ý kiến/dự định. Tám khóa mới ở mức Cơ bản, hai khóa cuối ở mức Trung cấp; hiện tất cả khóa Trung này dùng được với Free. Mỗi bài có bốn từ/cụm từ, đoạn đọc bốn câu kèm dịch Việt, nghe TTS, xếp câu, ngữ pháp, bài nói, đề viết và quiz giải thích. Pinyin của đoạn mới tạo bằng `pinyin-pro` cục bộ khi seed, giữ thanh gốc và được ghi rõ là tự động; không gọi AI trả phí. Đây là các bài ngắn tự biên soạn, không phải giáo trình HSK chính thức hoặc chứng nhận trình độ. Nội dung sức khỏe chỉ dùng để luyện ngôn ngữ, không phải hướng dẫn điều trị.
+
+Thư viện có bộ **3.000 từ** cộng đồng cùng các từ khóa học; số từ mới thực nhập phụ thuộc các từ đã có. Khóa mở rộng tìm từ theo `word`, dùng lại đúng ID và không ghi đè nghĩa/câu ví dụ đã được chỉnh sửa, giữ flashcard và lịch ôn. ID bài/câu hỏi cố định; không ghi bảng tiến độ hay tự đăng ký khóa mới cho người học. Các khóa được seed theo transaction từng khóa, chạy lại không nhân bản; các bộ luyện tập kỹ năng tiếng Trung được mở rộng theo. `pnpm db:seed:chinese` đồng bộ riêng nội dung Trung; `pnpm db:seed` và luồng Vercel Production hiện có cũng bao gồm các khóa mới. Không cần migration riêng cho đợt bổ sung này.
+
+Quản trị viên có thể chọn `language` khi tạo/sửa nội dung và nhập Pinyin; nội dung gắn vào bài học phải cùng ngôn ngữ với khóa học. Từ vựng vẫn giữ ràng buộc `word` duy nhất toàn hệ thống để tương thích các bộ nhập hiện tại; nếu mở rộng các ngôn ngữ có cách viết trùng nhau, cần nâng cấp khóa này và các script nhập dữ liệu.
 
 Lần đầu cập nhật trên máy local:
 
@@ -165,6 +169,8 @@ Trong hộp thoại, chọn từng chữ rồi **Viết mẫu / Nét trước / 
 Dữ liệu nét chữ được tải trực tiếp từ jsDelivr, gói `hanzi-writer-data@2.0.1`, chỉ khi mở và chỉ cho chữ đang chọn; không cần API key, không gọi AI hoặc sửa schema/seed. Tải lần đầu cần Internet; cache trong phiên trình duyệt tối đa 100 chữ. Không gửi cookie hoặc referrer đến CDN; CDN nhận địa chỉ IP của trình duyệt như các tài nguyên ngoài khác. Chữ thiếu dữ liệu/mất mạng có thông báo và nút thử lại, không dựng nét giả. Nguồn và giấy phép Arphic được dẫn ngay trong hộp thoại và `ATTRIBUTION.md`.
 
 Kiểm thử: `pnpm test`, `pnpm typecheck`, `pnpm test:languages:http` (cần server + DB localhost đang chạy). Có thể đặt `LANGUAGES_TEST_BASE_URL=http://localhost:3101` để chạy với server kiểm thử riêng. HTTP test chỉ tạo/xóa đúng tài khoản tạm, không gọi AI trả phí hoặc thay đổi người học thật; kiểm tra chọn ngôn ngữ, thư viện/flashcard/hội thoại riêng, tiếp tục bài và giữ nguyên CEFR tiếng Anh.
+
+`pnpm test:chinese:courses:http` kiểm tra riêng 10 khóa mới: Free đăng ký học được, đủ nội dung tham chiếu, không lộ đáp án trước khi nộp, lưu bước/tiếp tục bài và hoàn thành quiz. Cũng chỉ dùng server/DB localhost và dọn tài khoản tạm sau khi chạy.
 
 ## Triển khai
 

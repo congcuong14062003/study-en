@@ -22,6 +22,7 @@
     "test:exams:http": "tsx scripts/integration-exams-http.ts",
     "test:billing:http": "tsx scripts/integration-billing-http.ts",
     "test:languages:http": "tsx scripts/integration-languages-http.ts",
+    "test:chinese:courses:http": "tsx scripts/integration-chinese-courses-http.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "format": "node scripts/format-source.cjs"
   },
