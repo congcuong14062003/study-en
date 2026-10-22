@@ -33,6 +33,7 @@ import {
 import { AudioButton, MediaAudioPlayer } from "./audio-player";
 import { VocabularyExampleAudio } from "./vocabulary-example-audio";
 import { ChineseTextTools } from "./chinese-text-tools";
+import { PronunciationCheck } from "./pronunciation-check";
 import { InteractiveReadingText } from "./interactive-reading-text";
 import { FavoriteButton } from "./favorite-button";
 import {
@@ -205,6 +206,7 @@ export function ReadingContent({ article }: { article: ReadingArticle }) {
           {selected && (
             <>
               <h3>{selected.meaning}</h3>
+              <PronunciationCheck text={selected.word} language={selected.language} />
               <ChineseTextTools text={selected.word} pinyin={selected.pinyin} language={selected.language} />
               <p className="mt-4">{selected.example}</p>
               <VocabularyExampleAudio example={selected.example} />

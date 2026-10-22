@@ -1,13 +1,9 @@
 export function compareTranscript(expectedText: string, transcript: string) {
-  const tokens = (s: string) => /\p{Script=Han}/u.test(expectedText)
-    ? Array.from(s.matchAll(/\p{Script=Han}/gu), (m) => m[0])
-    :
-    s
-      .toLowerCase()
-      .replace(/[^a-z'\s]/g, "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
+  const chinese = /\p{Script=Han}/u.test(expectedText);
+  const tokens = (s: string) => {
+    const normalized = s.normalize("NFKC").toLowerCase().replace(/[’‘]/g, "'");
+    return normalized.match(chinese ? /\p{Script=Han}|[a-z0-9]+(?:'[a-z0-9]+)*/gu : /[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)*/gu) || [];
+  };
   const expected = tokens(expectedText),
     actual = tokens(transcript);
   const distance = Array.from({ length: expected.length + 1 }, (_, i) =>

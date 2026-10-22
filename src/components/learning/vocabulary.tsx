@@ -40,6 +40,7 @@ import { VocabularyExampleAudio } from "./vocabulary-example-audio";
 import { useLearningLanguage } from "./language-switcher";
 import { learningLanguages } from "@/lib/languages";
 import { ChineseTextTools } from "./chinese-text-tools";
+import { PronunciationCheck } from "./pronunciation-check";
 export type Word = Vocabulary & {
   review?: UserVocabulary | null;
 };
@@ -172,6 +173,7 @@ export function VocabularyCard({
         {word.pinyin || word.ipa} <span>{word.partOfSpeech}</span>
       </div>
       <h3>{word.meaning}</h3>
+      <PronunciationCheck text={word.word} language={word.language} />
       <ChineseTextTools text={word.word} pinyin={word.pinyin} language={word.language} />
       {word.imageUrl && (
         <Image
@@ -572,6 +574,7 @@ export function Flashcards() {
         </span>
       </button>
       <div className="centered-text flashcard-tools">
+        <PronunciationCheck key={`pronunciation:${word.id}`} text={word.word} language={word.language} />
         <AudioButton
           text={word.word}
           label="Nghe từ vựng"
