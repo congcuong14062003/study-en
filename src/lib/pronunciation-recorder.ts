@@ -28,7 +28,7 @@ export function recognitionErrorMessage(code: string) {
 }
 
 /** One attempt. Permission requests, late final results, timers and media all share one lifecycle. */
-export function createPronunciationRecorder(locale: string, runtime: Runtime, update: (value: PronunciationCapture) => void) {
+export function createPronunciationRecorder(locale: string, runtime: Runtime, update: (value: PronunciationCapture) => void, maxDurationMs = 45000) {
   let state = emptyPronunciationCapture();
   let disposed = false;
   let stream: MediaStream | null = null;
@@ -104,7 +104,7 @@ export function createPronunciationRecorder(locale: string, runtime: Runtime, up
         }
         recorder.start();
         emit({ phase: "recording" });
-        timer = runtime.schedule(stop, 45000);
+        timer = runtime.schedule(stop, maxDurationMs);
         if (recognition) {
           try { recognition.start(); } catch {
             emit({ error: "Chưa mở được nhận dạng giọng nói. Bạn vẫn có thể thu âm và nghe lại." });

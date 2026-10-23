@@ -13,8 +13,10 @@ import { c2Courses, c2Grammar, c2Lessons, c2Listening, c2Questions, c2Reading, c
 import { examPapers } from "./exam-content";
 import { seedChinese } from "./chinese-content";
 import { seedChineseVocabulary } from "./chinese-vocabulary";
+import { seedSpeakingSamples } from "./speaking-samples";
 const db = new PrismaClient();
 async function main() {
+    await seedSpeakingSamples(db);
     await seedChinese(db);
     await seedChineseVocabulary(db);
     for (const paper of examPapers) {

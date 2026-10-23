@@ -7,7 +7,7 @@ import { VocabularyExampleAudio } from "../src/components/learning/vocabulary-ex
 import { compareTranscript } from "../src/services/speech";
 import { createPronunciationRecorder, type PronunciationCapture } from "../src/lib/pronunciation-recorder";
 
-function fixture(options: { unsupported?: boolean; pending?: boolean; denied?: boolean; recognitionThrows?: boolean } = {}) {
+function fixture(options: { unsupported?: boolean; pending?: boolean; denied?: boolean; recognitionThrows?: boolean; maxDuration?: number } = {}) {
   let release!: (value: MediaStream) => void;
   let trackStops = 0, recognitionStops = 0, recognitionAborts = 0;
   const states: PronunciationCapture[] = [];
@@ -32,7 +32,7 @@ function fixture(options: { unsupported?: boolean; pending?: boolean; denied?: b
     createRecognition: options.unsupported ? null : () => recognition,
     schedule: (callback, ms) => { const id = ++timerId as unknown as ReturnType<typeof setTimeout>; timers.set(id, { callback, ms }); return id; },
     clear: (id) => { timers.delete(id); },
-  }, (state) => states.push(state));
+  }, (state) => states.push(state), options.maxDuration);
   return { session, recognition, recorder, timers, states, stream,
     release: () => release(stream), latest: () => states.at(-1)!,
     counters: () => ({ trackStops, recognitionStops, recognitionAborts }),
@@ -127,6 +127,16 @@ test("time limits stop capture and settle browsers that never send recognition e
   assert.equal(f.latest().finalTranscript, "");
   assert.equal(f.timers.size, 0);
   assert.ok(f.counters().recognitionAborts > 0);
+});
+
+test("Azure/conversation capture stops at 28 seconds instead of the legacy 45-second limit", async () => {
+  const f = fixture({ unsupported: true, maxDuration: 28000 });
+  await f.session.start();
+  const timer = [...f.timers.values()].find((item) => item.ms === 28000);
+  assert.ok(timer); timer.callback();
+  assert.equal(f.latest().phase, "done");
+  assert.equal(f.recorder.state, "inactive");
+  assert.ok(f.counters().trackStops > 0);
 });
 
 test("disposal detaches callbacks, aborts recognition and stops microphone; repeated start is ignored", async () => {

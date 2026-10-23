@@ -158,6 +158,10 @@ Lệnh seed tiếng Trung có thể chạy lại, không tạo tài khoản demo
 
 Nút **Nghe câu ví dụ** có ở thẻ từ vựng, từ điển, chi tiết từ trong bài đọc và mặt sau flashcard của cả tiếng Anh lẫn tiếng Trung, tách khỏi nút nghe từ đơn. Có chọn giọng và tốc độ; dùng TTS trình duyệt, không phải bản thu người thật và không gọi AI để phát âm. Giọng đọc/nhận dạng đặt locale `zh-CN` cho chữ Hán; giọng khả dụng phụ thuộc trình duyệt/hệ điều hành. Chấm nói là độ khớp lời nhận dạng, không phải điểm thanh điệu/phát âm. Chấm viết, hội thoại và tra từ tự động ngoài thư viện cần dịch vụ AI đã cấu hình, dùng chung hạn mức tài khoản.
 
+Trong **Luyện nói** và bước **Nói** của bài học, phiên âm hiển thị ngay dưới câu mẫu: Trung dùng Pinyin có dấu (ưu tiên bản lưu đúng đoạn; thiếu thì chuyển cục bộ), Anh dùng IPA tham khảo theo giọng Mỹ. Năm câu nói tiếng Anh mặc định có IPA đi kèm không cần AI; câu khác gọi `POST /api/speaking/phonetics` qua dịch vụ AI đã cấu hình, tối đa 1.000 ký tự nguồn và 2.200 token đầu ra. Chỉ gửi câu mẫu, không gửi bản ghi giọng nói. API yêu cầu đăng nhập/Origin hợp lệ, kiểm tra JSON/IPA, có thử lại khi lỗi; cache trong tiến trình tối đa 200 câu/7 ngày và gộp yêu cầu đồng thời. Tạo IPA mới giới hạn 12 lượt/phút/người và 100 lượt/phút toàn hệ thống, không trừ vào lượt chat. Cache không bền vững qua cold start/deploy; IPA AI có thể sai và giọng TTS được chọn có thể khác giọng Mỹ tham khảo. Không sửa schema hoặc lưu đè nội dung học.
+
+Ngay dưới phiên âm có **Nghĩa tiếng Việt** của toàn bộ câu/đoạn mẫu. Năm câu nói Anh mặc định có bản dịch sẵn; các đoạn Trung ưu tiên bản dịch khớp chính xác trong bài nghe/bài đọc/câu ví dụ, không lấy nghĩa từ vựng ghép thành bản dịch và không dùng bản dịch của cả đoạn để gán cho một câu con. Thiếu dữ liệu thì `POST /api/speaking/translation` dịch bằng AI (tối đa 1.000 ký tự nguồn/1.800 token đầu ra, 20 lượt tạo/phút/người và 100 lượt/phút toàn hệ thống); có nhãn AI, cache tiến trình 200 câu/7 ngày, gộp yêu cầu và nút thử lại khi lỗi. Không ghi DB hoặc trừ vào lượt chat; đổi bài hủy nhận kết quả cũ để không hiện nhầm bản dịch.
+
 **Kiểm tra phát âm từ / câu ví dụ** mở hộp thoại nghe mẫu → chủ động cho phép micro → đọc → dừng và đối chiếu. Dùng Web Speech Recognition (`en-US` / `zh-CN`) cùng MediaRecorder, không cần thêm API key hay migration. Chỉ tính độ khớp bản nhận dạng cuối, nêu từ/chữ còn thiếu hoặc khác mẫu; không giả lập điểm âm vị, ngữ điệu hoặc thanh điệu. Khớp 100% vẫn không chứng nhận phát âm chuẩn. Bản thu nghe lại chỉ giữ bằng Blob URL trong lần mở hộp thoại; ứng dụng không tải âm thanh hoặc transcript lên server, không đổi XP/lịch ôn. Tuy nhiên dịch vụ nhận dạng của trình duyệt có thể gửi âm thanh tới máy chủ của họ và cần mạng; UI thông báo trước khi bắt đầu. Thu tối đa 45 giây; đóng hộp thoại/đổi nội dung dừng micro và hủy nhận dạng, kể cả khi quyền micro được cấp muộn. Không hỗ trợ nhận dạng thì chỉ thu và nghe lại; lỗi quyền/mạng hoặc không có lời nhận dạng cuối không được coi là điểm phát âm 0.
 
 Gói 3.000 từ ghép danh sách/Pinyin từ Complete HSK Vocabulary, nghĩa Việt từ CVDICT qua bản lưu thaoshibe và câu ví dụ từ hsk-sentences-audio. Chỉ nhận mục khớp Pinyin **cả thanh điệu**, có câu ví dụ chứa đúng token từ; dữ liệu cộng đồng vẫn có thể còn lỗi và chưa được hiệu đính thủ công toàn bộ. Câu mới chưa có sẵn bản dịch Việt: UI dùng luồng dịch AI khi mở thẻ nếu đã cấu hình, rồi lưu kết quả để lần sau không dịch lại. Không tự dịch hàng loạt hoặc lấy nghĩa từ ghép giả thành bản dịch câu. Xem `ATTRIBUTION.md` và `/data/chinese-vocabulary-attribution.json` để biết nguồn, phiên bản cố định và giấy phép CC BY-SA 4.0.
@@ -171,6 +175,30 @@ Dữ liệu nét chữ được tải trực tiếp từ jsDelivr, gói `hanzi-w
 Kiểm thử: `pnpm test`, `pnpm typecheck`, `pnpm test:languages:http` (cần server + DB localhost đang chạy). Có thể đặt `LANGUAGES_TEST_BASE_URL=http://localhost:3101` để chạy với server kiểm thử riêng. HTTP test chỉ tạo/xóa đúng tài khoản tạm, không gọi AI trả phí hoặc thay đổi người học thật; kiểm tra chọn ngôn ngữ, thư viện/flashcard/hội thoại riêng, tiếp tục bài và giữ nguyên CEFR tiếng Anh.
 
 `pnpm test:chinese:courses:http` kiểm tra riêng 10 khóa mới: Free đăng ký học được, đủ nội dung tham chiếu, không lộ đáp án trước khi nộp, lưu bước/tiếp tục bài và hoàn thành quiz. Cũng chỉ dùng server/DB localhost và dọn tài khoản tạm sau khi chạy.
+
+## Luyện nói theo chủ đề và hội thoại giọng nói
+
+Thư viện thêm 60 câu tiếng Anh và 160 câu tiếng Trung ngắn từ nội dung khóa học, chia 10 chủ đề, có nghĩa Việt; tiếng Trung có Pinyin. Chọn **Luyện nói → Câu mẫu theo chủ đề**, lọc chủ đề/tìm câu rồi nghe và luyện. Danh sách hiển thị 12 câu mỗi trang; các bài cũ vẫn được giữ. Đồng bộ local bằng `pnpm db:seed:speaking`; seed production hiện có cũng tự đồng bộ bộ câu này. Không cần migration, không xóa tiến độ học.
+
+Trong **Luyện nói → Hội thoại với AI**, chọn tình huống, bấm micro, nói tối đa 28 giây rồi xem lại lời nhận dạng. Bấm **Dùng lời nói này**, sửa nếu cần rồi gửi. Có thể bật **AI tự đọc câu trả lời** hoặc nghe từng phản hồi. Hội thoại dùng cấu hình Groq và hạn mức chat hiện có; nhận dạng giọng nói phụ thuộc trình duyệt/mạng (khuyên dùng Chrome/Edge). Bản thu chỉ giữ tạm trên thiết bị; trình duyệt có thể gửi âm thanh tới dịch vụ nhận dạng của họ. Groq chỉ nhận văn bản, góp ý ngữ pháp/cách dùng từ, không chấm âm vị hay thanh điệu.
+
+### Bật chấm phát âm thật bằng Azure Speech (tùy chọn)
+
+1. Trong Azure Portal, tạo **Speech resource** thuộc Azure AI services, chọn subscription và region có hỗ trợ Speech. Vào **Keys and Endpoint** để lấy key và region của chính resource đó. Kiểm tra mức phí/quota của subscription trước khi bật.
+2. Thêm vào `.env` local (không commit, không gửi key qua chat):
+
+   ```dotenv
+   AZURE_SPEECH_KEY=your-speech-resource-key
+   AZURE_SPEECH_REGION=southeastasia
+   ```
+
+   Region trên chỉ là ví dụ: thay đúng mã region trong resource. Không dùng endpoint URL làm region. Trên Vercel, thêm hai biến ở Project Settings → Environment Variables cho môi trường cần dùng, rồi redeploy. Không đặt tiền tố `NEXT_PUBLIC_`.
+3. Khởi động lại server local. Vào một câu mẫu hoặc câu sửa trong hội thoại, bấm **Luyện phát âm câu này** → nghe mẫu → **Thu âm đọc lại** → dừng → nghe lại → **Chấm phát âm**. Chỉ lần bấm chấm mới gửi WAV/câu mẫu qua server tới Azure; ứng dụng không lưu bản thu trong DB. Tham khảo chính sách xử lý dữ liệu Azure của tổ chức trước khi sử dụng.
+4. API `/api/speech/assessment` hỗ trợ `en-US` và `zh-CN`, WAV PCM16 mono 16 kHz, dưới 30 giây (micro tự dừng sau 28 giây). Kết quả gồm độ chính xác, trôi chảy, đọc đủ, điểm phát âm và từ/âm cần luyện. Không có điểm thanh điệu tiếng Trung riêng; điểm tự động không thay thế giáo viên. Khi chưa có key, chỉ hiển thị thông báo chưa cấu hình, không trả điểm giả.
+
+Để bảo vệ chi phí, mỗi tài khoản (kể cả Premium) tối đa 20 **yêu cầu** chấm âm thanh trong cửa sổ 24 giờ, 8/phút; toàn hệ thống 100/phút. Yêu cầu đã gửi nhưng Azure lỗi vẫn tính lượt. Đây là hạn mức riêng với chat Groq, không phải cam kết Azure miễn phí. Audio thật chưa được kiểm thử khi chưa có credentials; bộ test sử dụng dữ liệu âm thanh tổng hợp và phản hồi Azure giả lập, không gọi dịch vụ trả phí.
+
+Tài liệu chính thức: [Azure short-audio REST / pronunciation assessment](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-speech-to-text-short), [ngôn ngữ được hỗ trợ](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=pronunciation-assessment).
 
 ## Triển khai
 
@@ -194,7 +222,7 @@ Các thiết lập trong repository không tự kết nối dự án với Verce
 ## Phạm vi MVP và phần cần hoàn thiện trước khi mở thương mại
 
 - Premium hỗ trợ chuyển khoản QR và admin đối soát/mở gói thủ công. Chưa nối API ngân hàng/cổng thanh toán/webhook, chưa tự đối soát, hoàn tiền hoặc xuất hóa đơn.
-- Speaking chấm **độ khớp văn bản nhận dạng**, không giả lập điểm phát âm, độ trôi chảy hoặc ngữ điệu. Muốn chấm các chỉ số đó cần dịch vụ phân tích âm thanh.
+- Speaking có đối chiếu lời nhận dạng và tích hợp Azure Speech tùy chọn để chấm âm thanh khi đọc lại câu mẫu; cần cấu hình key/region và kiểm thử dịch vụ thật trước khi mở cho học viên. Hội thoại Groq chỉ sửa văn bản, chưa đánh giá phát âm trực tiếp trong cuộc nói chuyện tự do hoặc chấm thanh điệu tiếng Trung riêng.
 - UI hiện bằng tiếng Việt. Nội dung học tiếng Anh có bản dịch; chưa có bản dịch toàn bộ giao diện sang tiếng Anh.
 - Luyện đề TOEIC/IELTS hiện là các bộ đề rút gọn, chưa phải đề thi đủ độ dài hoặc đủ bốn kỹ năng. Chấm tự động câu chọn đáp án và trả lời ngắn; chưa chấm Writing/Speaking theo thang điểm chứng chỉ trong khu luyện đề.
 - Gợi ý học hiện dựa trên điểm kỹ năng đã lưu; chưa dùng mô hình AI để tối ưu lộ trình. CEFR là ước tính tham khảo, không phải chứng chỉ.

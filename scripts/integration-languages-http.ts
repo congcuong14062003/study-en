@@ -31,6 +31,23 @@ async function main() {
     }
     await request("learning-language", "POST", { language: "zh" }, 401, false);
     await request("learning-language", "POST", { language: "fr" }, 400);
+    await request("speaking/phonetics", "POST", { text: "I usually wake up at seven o'clock." }, 401, false);
+    const phonetics = await request("speaking/phonetics", "POST", { text: "I usually wake up at seven o'clock." });
+    assert.equal(phonetics.source, "builtin", "Default English readings must not require AI");
+    assert.equal(phonetics.locale, "en-US");
+    assert.match(phonetics.ipa, /ˈsɛvən/);
+    await request("speaking/phonetics", "POST", { text: "你好" }, 400);
+    await request("speaking/phonetics", "POST", { text: "a".repeat(1001) }, 400);
+    await request("speaking/phonetics", "DELETE", {}, 404);
+    await request("speaking/translation", "POST", { text: "I usually wake up at seven o'clock." }, 401, false);
+    const englishMeaning = await request("speaking/translation", "POST", { text: "I usually wake up at seven o'clock." });
+    assert.equal(englishMeaning.source, "builtin");
+    assert.equal(englishMeaning.translation, "Tôi thường thức dậy lúc bảy giờ.");
+    const chineseMeaning = await request("speaking/translation", "POST", { text: "我想喝茶。妈妈想吃米饭。" });
+    assert.equal(chineseMeaning.source, "saved", "Saved Chinese speaking paragraphs must not call AI");
+    assert.equal(chineseMeaning.translation, "Tôi muốn uống trà. Mẹ muốn ăn cơm.");
+    await request("speaking/translation", "POST", { text: "a".repeat(1001) }, 400);
+    await request("speaking/translation", "DELETE", {}, 404);
     assert.equal((await request("me")).profile.targetLanguage, "en");
     await request(`lessons/${englishLesson.id}/progress`, "POST", { step: 1 });
     await request("vocabulary/start", "POST", { vocabularyId: englishWord.id });

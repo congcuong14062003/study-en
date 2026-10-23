@@ -20,7 +20,9 @@ import { api } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeading } from "@/components/dashboard/dashboard";
-import { AudioButton } from "@/components/learning/audio-player";
+import { AudioButton, speak } from "@/components/learning/audio-player";
+import { VoiceMessageInput } from "@/components/learning/voice-message-input";
+import { SpeechAssessment } from "@/components/learning/speech-assessment";
 import type { TutorReply } from "@/services/ai";
 type TutorMetadata = Omit<TutorReply, "reply">;
 type TutorMessage = {
@@ -59,7 +61,7 @@ const scenarios = [
   "Shopping",
   "Making Friends",
 ];
-export function AIChat() {
+export function AIChat({ voiceMode = false }: { voiceMode?: boolean }) {
   const language = useLearningLanguage();
   const { data: status, refresh: refreshStatus } =
     useData<AIStatus>("/ai/status");
@@ -74,26 +76,31 @@ export function AIChat() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [listening, setListening] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [voiceActive, setVoiceActive] = useState(false);
   const bottom = useRef<HTMLDivElement | null>(null);
   const recognition = useRef<SpeechRecognition | null>(null);
+  const chatRequest = useRef<AbortController | null>(null);
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, busy]);
-  useEffect(() => () => recognition.current?.abort(), []);
+  useEffect(() => () => { chatRequest.current?.abort(); recognition.current?.abort(); window.speechSynthesis?.cancel(); }, []);
   async function send(event: React.FormEvent) {
     event.preventDefault();
     const text = message.trim();
-    if (!text || busy || !status?.configured) return;
+    if (!text || busy || voiceActive || !status?.configured) return;
     setBusy(true);
     setError("");
     setMessage("");
     setMessages((current) => [...current, { role: "user", content: text }]);
+    const controller = new AbortController(); chatRequest.current = controller;
     try {
       const result = await api<{
         conversationId: string;
         message: TutorMessage;
       }>("/ai/chat", {
         method: "POST",
+        signal: controller.signal,
         body: JSON.stringify({
           message: text,
           conversationId,
@@ -102,11 +109,14 @@ export function AIChat() {
           correction,
         }),
       });
+      if (controller.signal.aborted) return;
       setMessages((current) => [...current, result.message]);
       setConversationId(result.conversationId);
+      if (autoSpeak) speak(result.message.content, learningLanguages[language].speech);
       refreshHistory();
       refreshStatus();
     } catch (caught) {
+      if (controller.signal.aborted) return;
       setMessages((current) => current.slice(0, -1));
       setMessage(text);
       setError((caught as Error).message);
@@ -144,6 +154,7 @@ export function AIChat() {
     }
   }
   function newChat() {
+    recognition.current?.abort(); window.speechSynthesis?.cancel();
     setConversationId(undefined);
     setMessages([]);
     setMessage("");
@@ -187,7 +198,7 @@ export function AIChat() {
   return (
     <>
       <PageHeading
-        title="Một cuộc trò chuyện. Thêm tự tin."
+        title={voiceMode ? "Nói chuyện theo tình huống" : "Một cuộc trò chuyện. Thêm tự tin."}
         description={`Luyện giao tiếp theo tình huống cùng giáo viên ${language === "zh" ? "tiếng Trung" : "tiếng Anh"} AI.`}
       >
         <Badge>
@@ -200,7 +211,7 @@ export function AIChat() {
             variant="outline"
             className="w-full"
             onClick={newChat}
-            disabled={busy}
+            disabled={busy || voiceActive}
           >
             <Plus size={16} /> Cuộc trò chuyện mới
           </Button>
@@ -209,7 +220,7 @@ export function AIChat() {
             <select
               id="scenario"
               value={scenario}
-              disabled={Boolean(conversationId) || busy}
+              disabled={Boolean(conversationId) || busy || voiceActive}
               onChange={(event) => setScenario(event.target.value)}
             >
               {scenarios.map((item) => (
@@ -222,7 +233,7 @@ export function AIChat() {
             <select
               id="difficulty"
               value={difficulty}
-              disabled={Boolean(conversationId) || busy}
+              disabled={Boolean(conversationId) || busy || voiceActive}
               onChange={(event) => setDifficulty(event.target.value)}
             >
               {["Beginner", "Intermediate", "Advanced"].map((item) => (
@@ -235,7 +246,7 @@ export function AIChat() {
             <select
               id="correction"
               value={correction}
-              disabled={Boolean(conversationId) || busy}
+              disabled={Boolean(conversationId) || busy || voiceActive}
               onChange={(event) => setCorrection(event.target.value)}
             >
               <option value="none">Không ngắt để sửa</option>
@@ -265,7 +276,7 @@ export function AIChat() {
                 >
                   <button
                     onClick={() => openConversation(item.id)}
-                    disabled={busy}
+                    disabled={busy || voiceActive}
                   >
                     <MessageSquare size={14} />
                     <span>
@@ -276,7 +287,7 @@ export function AIChat() {
                   <button
                     aria-label={`Xóa ${item.title || item.scenario}`}
                     onClick={() => removeConversation(item.id)}
-                    disabled={busy}
+                    disabled={busy || voiceActive}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -287,7 +298,7 @@ export function AIChat() {
             )}
           </div>
         </aside>
-        <Card className="chat-surface">
+        <Card className={`chat-surface ${voiceMode ? "voice-chat-surface" : ""}`}>
           <div className="chat-header">
             <span className="icon-box purple">
               <Sparkles size={22} />
@@ -340,6 +351,9 @@ export function AIChat() {
               <TutorMessageView
                 key={item.id || `${item.role}-${index}`}
                 message={item}
+                voiceMode={voiceMode}
+                locale={learningLanguages[language].speech}
+                disabled={voiceActive || busy}
               />
             ))}
             {busy && (
@@ -356,7 +370,12 @@ export function AIChat() {
               {error}
             </p>
           )}
+          {voiceMode && <>
+            <label className="voice-autoplay"><input type="checkbox" checked={autoSpeak} onChange={(event) => { setAutoSpeak(event.target.checked); if (!event.target.checked) window.speechSynthesis?.cancel(); }} /> AI tự đọc câu trả lời</label>
+            <VoiceMessageInput locale={learningLanguages[language].speech} disabled={busy || !status?.configured} onActive={setVoiceActive} onUse={setMessage} />
+          </>}
           <form className="chat-composer" onSubmit={send}>
+            {!voiceMode &&
             <Button
               type="button"
               variant="ghost"
@@ -368,19 +387,19 @@ export function AIChat() {
               }
             >
               <Mic size={20} className={listening ? "orange-text" : ""} />
-            </Button>
+            </Button>}
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               placeholder={
                 status?.configured
-                  ? "Type your message in English…"
+                  ? language === "zh" ? "Nhập tiếng Trung hoặc dùng micro…" : "Type your message in English…"
                   : "Cấu hình Groq API key để bắt đầu…"
               }
               aria-label="Tin nhắn gửi AI Tutor"
               rows={1}
               maxLength={2000}
-              disabled={busy || !status?.configured}
+              disabled={busy || voiceActive || !status?.configured}
               onKeyDown={(event) => {
                 if (
                   event.key === "Enter" &&
@@ -395,7 +414,7 @@ export function AIChat() {
             <Button
               type="submit"
               size="icon"
-              disabled={!message.trim() || busy || !status?.configured}
+              disabled={!message.trim() || busy || voiceActive || !status?.configured}
               aria-label="Gửi tin nhắn"
             >
               <Send size={18} />
@@ -409,9 +428,10 @@ export function AIChat() {
     </>
   );
 }
-function TutorMessageView({ message }: { message: TutorMessage }) {
+function TutorMessageView({ message, voiceMode, locale, disabled }: { message: TutorMessage; voiceMode?: boolean; locale: string; disabled: boolean }) {
   const feedback = message.metadata;
   const spoken = `${message.content}${feedback?.followUp ? `. ${feedback.followUp}` : ""}`;
+  const practice = (feedback?.correction?.corrected || message.content.match(/[^.!?。！？]+[.!?。！？]?/u)?.[0] || "").trim();
   return (
     <div className={`chat-message ${message.role}`}>
       <span className="chat-avatar">
@@ -446,7 +466,10 @@ function TutorMessageView({ message }: { message: TutorMessage }) {
           </div>
         )}
         {message.role === "assistant" && (
-          <AudioButton text={spoken} label="Nghe phản hồi" />
+          <>
+            {!disabled && <AudioButton text={spoken} lang={locale} label="Nghe phản hồi" />}
+            {voiceMode && practice.length <= 500 && <SpeechAssessment text={practice} locale={locale} disabled={disabled} />}
+          </>
         )}
       </div>
     </div>

@@ -256,7 +256,7 @@ export function LessonPlayer({ id }: { id: string }) {
         )}
         {step === 3 && (
           <div className="content-narrow">
-            <SpeakingRecorder text={sentence} />
+            <SpeakingRecorder key={sentence} text={sentence} language={data.lesson.course.language} />
             {data.lesson.course.language === "zh" && data.grammar?.notes && <p className="pinyin-support">{data.grammar.notes}</p>}
           </div>
         )}

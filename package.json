@@ -15,6 +15,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:exams": "tsx scripts/seed-exams.ts",
     "db:seed:chinese": "tsx scripts/seed-chinese.ts",
+    "db:seed:speaking": "tsx scripts/seed-speaking.ts",
     "vocabulary:build:chinese": "tsx scripts/build-chinese-vocabulary.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:integration": "tsx scripts/integration.ts",
@@ -22,6 +23,7 @@
     "test:exams:http": "tsx scripts/integration-exams-http.ts",
     "test:billing:http": "tsx scripts/integration-billing-http.ts",
     "test:languages:http": "tsx scripts/integration-languages-http.ts",
+    "test:speaking:http": "tsx scripts/integration-speaking-http.ts",
     "test:chinese:courses:http": "tsx scripts/integration-chinese-courses-http.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "format": "node scripts/format-source.cjs"

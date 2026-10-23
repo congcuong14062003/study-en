@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { isAIConfigured } from "@/lib/ai-config";
 import { currentUser, requireUser, requireAdmin } from "@/lib/auth";
+import { speakingMetadata, speakingLibraryOrder } from "../../../../prisma/speaking-samples";
 import {
   ApiError,
   checkOrigin,
@@ -30,6 +31,8 @@ import {
   translateVocabularyExample,
   getAIStatus,
   recommendLearning,
+  speakingPhonetics,
+  speakingTranslation,
 } from "@/services/ai";
 import { adminRead, adminWrite } from "@/services/admin";
 import { finishStudy } from "@/services/study-time";
@@ -301,7 +304,7 @@ export async function GET(request: Request, { params }: Context) {
       }
       case "speaking":
         await requireUser();
-        data = await db.speakingExercise.findMany({ where: { language } });
+        data = (await db.speakingExercise.findMany({ where: { language }, orderBy: { id: "asc" } })).sort(speakingLibraryOrder).map(speakingMetadata);
         break;
       case "quiz":
         data = await publicQuiz(
@@ -782,6 +785,15 @@ async function mutate(request: Request, { params }: Context) {
         data = await translateReadingWord(user.id, raw);
         break;
       case "speaking": {
+        if (id === "translation" && request.method === "POST" && !action) {
+          data = await speakingTranslation(user.id, raw);
+          break;
+        }
+        if (id === "phonetics" && request.method === "POST" && !action) {
+          data = await speakingPhonetics(user.id, raw);
+          break;
+        }
+        if (id !== "analyze" || request.method !== "POST" || action) throw new ApiError("API không tồn tại.", 404);
         const v = z
           .object({
             expected: z.string().max(1000),
