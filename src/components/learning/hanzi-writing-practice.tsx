@@ -27,7 +27,7 @@ export function HanziWritingPractice({
   const [message, setMessage] = useState(
     "Đặt bút và viết nét đầu tiên theo hình mờ.",
   );
-  const [showStrokeHints, setShowStrokeHints] = useState(true);
+  const [showStrokeHints, setShowStrokeHints] = useState(false);
 
   useEffect(() => {
     const element = host.current;
