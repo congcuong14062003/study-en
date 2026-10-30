@@ -154,7 +154,7 @@ export function SpeakingRecorder({
     }
   }
   return (
-    <Card className="speaking-card">
+    <Card className={`speaking-card ${language === "zh" ? "chinese-learning-content" : ""}`}>
       <div className="flex-row justify-between">
         <Badge>
           <Mic size={12} /> SPEAK WITH CONFIDENCE

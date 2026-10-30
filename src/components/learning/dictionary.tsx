@@ -84,7 +84,7 @@ export function Dictionary() {
           <div className="search-results">
             {results.slice(0, 8).map((w) => (
               <button
-                className="dictionary-result"
+                className={`dictionary-result ${language === "zh" ? "chinese-learning-content" : ""}`}
                 key={w.id}
                 onClick={() => select(w)}
               >
@@ -123,7 +123,7 @@ export function Dictionary() {
         </>
       )}
       {selected && (
-        <Card className="dictionary-entry">
+        <Card className={`dictionary-entry ${selected.language === "zh" ? "chinese-learning-content" : ""}`}>
           <div className="flex-row justify-between">
             <Badge>
               {selected.level} · {selected.partOfSpeech}

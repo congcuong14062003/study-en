@@ -46,6 +46,7 @@ import { MotionGrid, MotionItem } from "@/components/ui/motion";
 import type { Word } from "./vocabulary";
 import { useLearningLanguage } from "./language-switcher";
 import { learningLanguages, languageTextUnits } from "@/lib/languages";
+import { chinesePinyinReading } from "@/lib/chinese-pinyin-reading";
 
 type Content = GrammarLesson | ListeningLesson | ReadingArticle;
 type ContentKind = "grammar" | "listening" | "reading";
@@ -97,6 +98,27 @@ function durationOf(item: Content) {
     : "minutes" in item
       ? `${item.minutes} phút đọc`
       : "Giải thích · Ví dụ · Thực hành";
+}
+
+function renderHanziRuns(text: string) {
+  return text.split(/(\p{Script=Han}+)/gu).map((part, index) =>
+    /\p{Script=Han}/u.test(part) ? (
+      <span lang="zh-CN" key={index}>{part}</span>
+    ) : part,
+  );
+}
+
+function TitlePinyin({ text }: { text: string }) {
+  const [reading, setReading] = useState("");
+  useEffect(() => {
+    let active = true;
+    const hanziRuns = text.match(/\p{Script=Han}+/gu) || [];
+    void Promise.all(hanziRuns.map((run) => chinesePinyinReading(run)))
+      .then((runs) => { if (active) setReading(runs.join(" · ")); })
+      .catch(() => { if (active) setReading(""); });
+    return () => { active = false; };
+  }, [text]);
+  return reading ? <span className="library-card-pinyin" lang="zh-Latn">{reading}</span> : null;
 }
 
 export function GrammarContent({ lesson }: { lesson: GrammarLesson }) {
@@ -473,7 +495,7 @@ export function ContentLibrary({
         <MotionGrid className="grid-3 library-grid">
           {visible.map((item, index) => (
             <MotionItem className="motion-card-shell" key={item.id}>
-              <Link href={`/${kind}/${item.id}`} className="library-card card">
+              <Link href={`/${kind}/${item.id}`} className={`library-card card ${language === "zh" ? "chinese-library-card" : ""}`}>
                 <div className="library-card-accent" />
                 <div className="flex-row justify-between">
                   <span
@@ -484,8 +506,9 @@ export function ContentLibrary({
                   <Badge className="neutral">{item.level}</Badge>
                 </div>
                 <span className="library-card-topic">{topicOf(item)}</span>
-                <h2>{item.title}</h2>
-                <p>{previewOf(item).replace(/\s+/g, " ").slice(0, 135)}…</p>
+                <h2>{language === "zh" ? renderHanziRuns(item.title) : item.title}</h2>
+                {language === "zh" && kind === "grammar" && <TitlePinyin text={item.title} />}
+                <p>{language === "zh" ? renderHanziRuns(previewOf(item).replace(/\s+/g, " ").slice(0, 135)) : previewOf(item).replace(/\s+/g, " ").slice(0, 135)}…</p>
                 <div className="library-card-footer">
                   <span>
                     <Clock size={13} /> {durationOf(item)}

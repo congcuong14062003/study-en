@@ -140,7 +140,7 @@ export function VocabularyCard({
     }
   }
   return (
-    <Card className="vocabulary-card">
+    <Card className={`vocabulary-card ${word.language === "zh" ? "chinese-learning-content" : ""}`}>
       <div className="flex-row justify-between">
         <Badge className="neutral">
           {word.level} · {word.category}
@@ -534,7 +534,7 @@ export function Flashcards() {
       </PageHeading>
       <Progress value={(index / data.length) * 100} />
       <button
-        className={`flashcard ${flipped ? "flipped" : ""}`}
+        className={`flashcard ${word.language === "zh" ? "chinese-learning-content" : ""} ${flipped ? "flipped" : ""}`}
         onClick={() => setFlipped(!flipped)}
         aria-label={flipped ? "Lật về mặt từ vựng" : "Lật thẻ xem nghĩa"}
       >

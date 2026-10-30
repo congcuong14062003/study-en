@@ -7317,6 +7317,17 @@ tbody > tr:hover {
 .match-board button strong {
   font-size: 14px;
 }
+.match-board.chinese-match-board button {
+  min-height: 68px;
+}
+.match-board.chinese-match-board button strong {
+  font-size: 21px;
+  line-height: 1.35;
+}
+.match-board.chinese-match-board button .match-pinyin {
+  font-size: 13px;
+  line-height: 1.5;
+}
 .match-board button small {
   margin-left: auto;
   color: var(--muted);
@@ -8052,6 +8063,51 @@ tbody > tr:hover {
 .hanzi-writing-rules summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
 .hanzi-writing-rules p { margin: 8px 0 0; font-size: inherit; line-height: inherit; }
 .hanzi-writing-rules a { display: inline-block; margin-top: 8px; color: var(--primary); text-decoration: underline; }
+
+/* Make Chinese characters and their reading easier to scan throughout study views. */
+.chinese-learning-content .word-title h2 { font-size: 34px; line-height: 1.35; }
+.chinese-learning-content .word-ipa { font-size: 18px; line-height: 1.7; }
+.chinese-learning-content .word-example > p { font-size: 20px; line-height: 1.8; }
+.chinese-learning-content.speaking-card .speaking-sentence { font-size: 34px; line-height: 1.65; }
+.chinese-learning-content .speaking-phonetics .speaking-phonetic-reading { font-size: 24px; line-height: 1.9; }
+.chinese-learning-content.dictionary-result strong { font-size: 22px; line-height: 1.5; }
+.chinese-learning-content.dictionary-result div > span { font-size: 16px; line-height: 1.6; }
+.chinese-learning-content.dictionary-entry > h1 { font-size: 54px; line-height: 1.3; }
+.chinese-learning-content.dictionary-entry > p:first-of-type { font-size: 20px; line-height: 1.7; }
+.chinese-learning-content .pronunciation-target[lang^="zh"] { font-size: 26px; line-height: 1.8; }
+.chinese-learning-content .pronunciation-transcript [lang^="zh"] { font-size: 21px; line-height: 1.8; }
+.chinese-learning-content .chinese-pinyin-reading > span { font-size: 19px; line-height: 1.9; }
+.chinese-learning-content .word-relations-values { font-size: 16px; line-height: 1.8; }
+.hanzi-lesson-words [lang^="zh"] { font-size: 21px; line-height: 1.5; }
+.pinyin-support[lang="zh-Latn"] { font-size: 18px; line-height: 1.9; }
+.reading-gloss-tooltip .reading-gloss-ipa { font-size: 16px; line-height: 1.7; }
+.flashcard.chinese-learning-content .flashcard-face.front > strong { font-size: 48px; line-height: 1.3; }
+.flashcard.chinese-learning-content .flashcard-face.front > .muted { font-size: 21px; line-height: 1.8; }
+.flashcard.chinese-learning-content .flashcard-example { font-size: 20px; line-height: 1.8; }
+.hanzi-dialog > h2 [lang^="zh"], .hanzi-dialog .hanzi-status [lang^="zh"] { font-size: 24px; }
+.speaking-sample-list button > span[lang^="zh"] { font-size: 20px; line-height: 1.7; }
+.chinese-library-card h2 { font-size: 22px; line-height: 1.6; }
+.chinese-library-card h2 [lang="zh-CN"] { display: inline-block; font-size: 27px; line-height: 1.4; }
+.chinese-library-card > p { font-size: 14px; line-height: 1.9; }
+.chinese-library-card > p [lang="zh-CN"] { font-size: 17px; }
+.library-card-pinyin { margin-top: -4px; margin-bottom: 8px; color: var(--primary); font-family: Arial, sans-serif; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .chinese-learning-content .word-title h2 { font-size: 30px; }
+  .chinese-learning-content .word-ipa { font-size: 17px; }
+  .chinese-learning-content .word-example > p { font-size: 18px; }
+  .chinese-learning-content.speaking-card .speaking-sentence { font-size: 29px; }
+  .chinese-learning-content .speaking-phonetics .speaking-phonetic-reading { font-size: 21px; }
+  .chinese-learning-content.dictionary-entry > h1 { font-size: 46px; }
+  .chinese-learning-content .pronunciation-target[lang^="zh"] { font-size: 23px; }
+  .flashcard.chinese-learning-content .flashcard-face.front > strong { font-size: 40px; }
+  .flashcard.chinese-learning-content .flashcard-face.front > .muted { font-size: 19px; }
+  .flashcard.chinese-learning-content .flashcard-example { font-size: 18px; }
+  .chinese-library-card h2 { font-size: 20px; }
+  .chinese-library-card h2 [lang="zh-CN"] { font-size: 25px; }
+  .chinese-library-card > p { font-size: 13px; }
+  .chinese-library-card > p [lang="zh-CN"] { font-size: 16px; }
+  .library-card-pinyin { font-size: 14px; }
+}
 .hanzi-writing-rules .hanzi-writing-rules-note { color: var(--muted); font-size: 12px; }
 .hanzi-practice-surface { width: min(100%, 280px); aspect-ratio: 1; position: relative; margin-inline: auto; border: 1px solid var(--line); background: var(--bg); }
 .hanzi-practice-guides { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -8142,7 +8198,8 @@ tbody > tr:hover {
   .lesson-stepper button > span { flex-shrink: 0; }
   .match-board button { flex-wrap: wrap; min-width: 0; }
   .match-board button strong { max-width: 100%; overflow-wrap: anywhere; }
-  .match-board button .match-pinyin { display: block; flex-basis: 100%; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+  .match-board button .match-pinyin { display: block; flex-basis: 100%; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+  .match-board.chinese-match-board button strong { font-size: 23px; }
 }
 @media (max-width: 380px) {
   .workspace-topbar .topbar-theme { display: none; }

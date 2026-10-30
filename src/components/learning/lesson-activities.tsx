@@ -83,7 +83,7 @@ export function WordMatch({ words, onComplete }: { words: Vocabulary[]; onComple
           </p>
         </div>
       </div>
-      <div className={`match-board ${wrong ? "wrong" : ""}`}>
+      <div className={`match-board ${choices.some((word) => word.language === "zh") ? "chinese-match-board" : ""} ${wrong ? "wrong" : ""}`}>
         <div>
           {choices.map((word) => (
             <button
