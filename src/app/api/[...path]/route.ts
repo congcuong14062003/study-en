@@ -57,6 +57,8 @@ export async function GET(request: Request, { params }: Context) {
     switch (resource) {
       case "exams": {
         const user = await requireUser();
+        if (learningLanguage(user.profile?.targetLanguage) === "zh")
+          throw new ApiError("Luyện đề TOEIC/IELTS chỉ dành cho lộ trình tiếng Anh. Hãy mở Khóa học để học HSK.", 403);
         if (id) throw new ApiError("API không tồn tại.", 404);
         data = await examCatalog(user.id);
         break;
@@ -503,6 +505,8 @@ async function mutate(request: Request, { params }: Context) {
     let data: unknown;
     switch (resource) {
       case "exams": {
+        if (learningLanguage(user.profile?.targetLanguage) === "zh")
+          throw new ApiError("Luyện đề TOEIC/IELTS chỉ dành cho lộ trình tiếng Anh. Hãy mở Khóa học để học HSK.", 403);
         if (!id || action !== "start" || request.method !== "POST") throw new ApiError("Hành động không hợp lệ.", 405);
         const { mode } = z.object({ mode: examModeSchema }).parse(raw);
         data = await startExam(user.id, id, mode);

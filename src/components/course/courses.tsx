@@ -383,11 +383,9 @@ export function Courses({ id, userId }: { id?: string; userId?: string }) {
         <div>
           <span className="eyebrow">SMALL STEPS. REAL PROGRESS.</span>
           <h2>
-            Mở cánh cửa mới
-            <br />
-            với tiếng Anh.
+            {language === "zh" ? <>Chinh phục tiếng Trung<br />theo từng cấp độ HSK.</> : <>Mở cánh cửa mới<br />với tiếng Anh.</>}
           </h2>
-          <p>Từ lời chào đầu tiên đến một cuộc họp tự tin.</p>
+          <p>{language === "zh" ? "Học từ vựng, nghe và đọc câu ví dụ theo trình độ của bạn." : "Từ lời chào đầu tiên đến một cuộc họp tự tin."}</p>
         </div>
         <GraduationCap size={95} strokeWidth={1} />
       </div>

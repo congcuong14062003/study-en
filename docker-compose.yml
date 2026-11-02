@@ -1,13 +1,14 @@
 services:
   postgres:
     image: postgres:17-alpine
+    container_name: study-en-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: englishmaster
       POSTGRES_USER: englishmaster
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your environment}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-e2e054ed6d740eb22228dd7845d80405c9495f29ec32923c}
     ports:
-      - "localhost:5432:5432"
+      - "127.0.0.1:5434:5432"
     volumes:
       - englishmaster_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,5 +16,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: study-en-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://englishmaster:${POSTGRES_PASSWORD:-e2e054ed6d740eb22228dd7845d80405c9495f29ec32923c}@postgres:5432/englishmaster?schema=public
+
 volumes:
   englishmaster_data:

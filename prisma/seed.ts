@@ -17,8 +17,8 @@ import { seedSpeakingSamples } from "./speaking-samples";
 const db = new PrismaClient();
 async function main() {
     await seedSpeakingSamples(db);
-    await seedChinese(db);
     await seedChineseVocabulary(db);
+    await seedChinese(db);
     for (const paper of examPapers) {
         const data = { ...paper, questions: paper.questions as unknown as Prisma.InputJsonValue, published: true };
         await db.examPaper.upsert({ where: { id: paper.id }, create: data, update: data });

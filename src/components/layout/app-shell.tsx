@@ -32,6 +32,9 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
   const language = learningLanguage(user?.targetLanguage);
   const title = workspacePageTitle(pathname);
   const activeTab = mobileTabForPath(pathname);
+  const visibleLearningLinks = language === "zh"
+    ? learningLinks.filter((link) => link.href !== "/exams")
+    : learningLinks;
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
@@ -82,7 +85,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
           </> : <>
             {nav(mainLinks, "Hành trình học")}
             <p className="nav-label">KHÔNG GIAN HỌC TẬP</p>
-            {nav(learningLinks, "Các mục học tập")}
+            {nav(visibleLearningLinks, "Các mục học tập")}
             {nav(communityLinks, "AI và cộng đồng")}
             <p className="nav-label">GÓC CỦA BẠN</p>
             {nav(personalLinks, "Cá nhân")}
@@ -146,7 +149,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
             {nav([{ href: "/dashboard", label: "Về trang học tập", icon: ArrowUpRight }], "Về học tập", true)}
           </> : <>
             {nav(mainLinks, "Hành trình trên di động", true)}
-            <h3>Không gian học tập</h3>{nav(learningLinks, "Học tập trên di động", true)}
+            <h3>Không gian học tập</h3>{nav(visibleLearningLinks, "Học tập trên di động", true)}
             <h3>AI & cộng đồng</h3>{nav(communityLinks, "AI và cộng đồng trên di động", true)}
             <h3>Góc của bạn</h3>{nav(personalLinks, "Cá nhân trên di động", true)}
             {user?.role === "ADMIN" && nav([{ href: "/admin", label: "Quản trị", icon: Shield }], "Mở quản trị", true)}

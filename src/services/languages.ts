@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { learningLanguageSchema } from "@/lib/languages";
 import { lockUser } from "./learning";
-import { ApiError } from "@/lib/security";
 
 export async function selectLearningLanguage(userId: string, raw: unknown) {
   const language = learningLanguageSchema.parse(raw);
@@ -12,8 +11,10 @@ export async function selectLearningLanguage(userId: string, raw: unknown) {
     const premium = user.role === "ADMIN" || (sub?.plan === "PREMIUM" && sub.status === "active" && (!sub.currentPeriodEnd || sub.currentPeriodEnd > new Date()));
     const available = { language, published: true, ...(premium ? {} : { premium: false }) };
     const first = await tx.course.findFirst({ where: available, orderBy: { createdAt: "asc" }, select: { id: true } });
-    if (!first) throw new ApiError("Ngôn ngữ này chưa có khóa học được xuất bản. Vui lòng quay lại sau.", 409);
     await tx.profile.upsert({ where: { userId }, create: { userId, targetLanguage: language }, update: { targetLanguage: language } });
+    // Switching languages must remain possible even if the target catalog has
+    // no published course yet; send the learner to the catalog in that case.
+    if (!first) return { language, resumeHref: "/courses" };
     const enrolled = await tx.courseEnrollment.findFirst({ where: { userId, course: available }, orderBy: { createdAt: "desc" }, select: { courseId: true } });
     if (!enrolled) await tx.courseEnrollment.create({ data: { userId, courseId: first.id } });
     const current = await tx.lessonProgress.findFirst({

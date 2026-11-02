@@ -78,5 +78,62 @@ export async function seedChineseCourses(db: PrismaClient) {
     }, { maxWait: 10000, timeout: 30000 });
     for (const content of lessons) for (const question of content.questions) questionIds[question.skill].push(question.id);
   }
+  // Build level-specific HSK practice from the imported vocabulary catalog.
+  // This dataset currently contains levels 1–5; do not label general Chinese
+  // lessons as higher HSK levels without a matching syllabus and word bank.
+  for (let hskLevel = 1; hskLevel <= 5; hskLevel++) {
+    const level = `HSK ${hskLevel}`;
+    const words = await db.vocabulary.findMany({
+      where: { language: "zh", category: { startsWith: `${level} ·` } },
+      orderBy: { word: "asc" },
+      select: { id: true, word: true, pinyin: true, meaning: true, example: true },
+    });
+    if (!words.length) continue;
+    const courseId = `chinese-hsk-${hskLevel}`;
+    const chunks = Array.from({ length: Math.ceil(words.length / 40) }, (_, index) => words.slice(index * 40, (index + 1) * 40));
+    const course = {
+      id: courseId, language: "zh", title: `${level} · Từ vựng và thực hành`, level,
+      category: `Lộ trình ${level}`, description: `Ôn từ vựng đúng cấp ${level} qua câu ví dụ, bài nghe, đọc hiểu và câu hỏi trắc nghiệm. Nội dung bám theo danh mục từ đang có trong hệ thống; đây là tài liệu học tham khảo, không thay thế giáo trình hay đề thi chính thức.`,
+      duration: `${chunks.length} bài · 10–15 phút/bài`, rating: 0, instructor: "EnglishMaster",
+      outcomes: [`Nhận biết từ vựng ${level}`, "Nghe và đọc ví dụ ngắn", "Luyện nhớ nghĩa qua câu hỏi"],
+      color: ["green", "blue", "purple", "orange", "pink"][hskLevel - 1], icon: "book",
+      published: true, premium: false,
+    };
+    await db.course.upsert({ where: { id: courseId }, create: course, update: course });
+    for (const [chunkIndex, chunk] of chunks.entries()) {
+      const prefix = `${courseId}-unit-${chunkIndex + 1}`;
+      const questionWords = chunk.slice(0, Math.min(12, chunk.length));
+      const questionIds: string[] = [];
+      for (const [index, word] of questionWords.entries()) {
+        const distractors = chunk.filter((candidate) => candidate.id !== word.id && candidate.meaning !== word.meaning).slice((index * 3) % Math.max(1, chunk.length - 1), (index * 3) % Math.max(1, chunk.length - 1) + 3);
+        const choices = [word.meaning, ...distractors.map((candidate) => candidate.meaning)];
+        const questionId = `${prefix}-q${index + 1}`;
+        const question = {
+          id: questionId, language: "zh", skill: "vocabulary", level,
+          prompt: `“${word.word}”${word.pinyin ? ` (${word.pinyin})` : ""} có nghĩa là gì?`,
+          options: choices, correctAnswer: 0,
+          explanation: `${word.word}${word.pinyin ? ` (${word.pinyin})` : ""}: ${word.meaning}.${word.example ? `\nVí dụ: ${word.example}` : ""}`,
+          passage: null, audioText: word.example || word.word,
+        };
+        await db.question.upsert({ where: { id: questionId }, create: question, update: question });
+        questionIds.push(questionId);
+      }
+      const examples = chunk.map((word) => word.example).filter(Boolean).slice(0, 12);
+      const pinyin = await chinesePinyinReading(examples.join(""));
+      const listening = { id: `${prefix}-listening`, language: "zh", title: `${level} · Nghe ví dụ ${chunkIndex + 1}`, level, topic: course.category, duration: 2, transcript: examples.join(" "), pinyin, translation: "" };
+      const reading = { id: `${prefix}-reading`, language: "zh", title: `${level} · Đọc ví dụ ${chunkIndex + 1}`, level, category: course.category, minutes: 3, body: examples.join("\n"), pinyin, translation: "" };
+      await db.listeningLesson.upsert({ where: { id: listening.id }, create: listening, update: listening });
+      await db.readingArticle.upsert({ where: { id: reading.id }, create: reading, update: reading });
+      const lesson = {
+        id: `${prefix}-lesson`, courseId, title: `Bài ${chunkIndex + 1} · ${level}`,
+        description: `${chunk.length} từ vựng cấp ${level}; nghe và đọc câu ví dụ, sau đó làm ${questionIds.length} câu hỏi nghĩa từ.`,
+        order: chunkIndex + 1, vocabularyIds: chunk.map((word) => word.id), grammarId: null,
+        listeningId: listening.id, readingId: reading.id, questionIds, published: true,
+      };
+      await db.lesson.upsert({ where: { id: lesson.id }, create: lesson, update: lesson });
+      const quiz = { id: `quiz-${lesson.id}`, language: "zh", title: lesson.title, kind: "lesson", lessonId: lesson.id, questionIds };
+      await db.quiz.upsert({ where: { id: quiz.id }, create: quiz, update: quiz });
+    }
+  }
   return questionIds;
 }

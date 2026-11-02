@@ -135,6 +135,8 @@ export default async function Page({ params, searchParams }: Props) {
   )
     notFound();
   const user = await currentUser();
+  if (section === "exams" && learningLanguage(user?.profile?.targetLanguage) === "zh")
+    redirect("/courses");
   if (!user && section !== "courses")
     redirect(
       `/login?callbackUrl=${encodeURIComponent(`/${section}${id ? `/${id}` : ""}`)}`,

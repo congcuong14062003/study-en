@@ -9,7 +9,7 @@ export const learningLanguages = {
   },
   zh: {
     name: "Tiếng Trung", native: "中文 · Giản thể", speech: "zh-CN",
-    levels: ["Nhập môn", "Cơ bản", "Trung cấp", "Nâng cao"],
+    levels: ["Nhập môn", "HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "Cơ bản", "Trung cấp", "Nâng cao"],
   },
 } as const;
 

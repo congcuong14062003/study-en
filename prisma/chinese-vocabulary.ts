@@ -5,7 +5,10 @@ import data from "./data/chinese-vocabulary-3000.json";
 export async function seedChineseVocabulary(db: PrismaClient) {
   let added = 0;
   for (let offset = 0; offset < data.length; offset += 300) {
-    const batch = data.slice(offset, offset + 300).map(({ source: _source, ...word }) => word);
+    const batch = data.slice(offset, offset + 300).map(({ source, ...word }) => ({
+      ...word,
+      level: `HSK ${source.hskLevel}`,
+    }));
     const result = await db.vocabulary.createMany({ data: batch, skipDuplicates: true });
     added += result.count;
   }
