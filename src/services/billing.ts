@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/security";
 import { lockUser } from "./learning";
 import { billingPeriodSchema, billingSettingsSchema, defaultBillingSettings, paymentReviewSchema, premiumExtension, transferReportSchema, vietQrUrl } from "@/lib/billing";
 import { paginationMeta, readPagination } from "@/lib/pagination";
+import { sendBillingReviewEmail } from "@/lib/billing-email";
 import type { Prisma } from "@prisma/client";
 
 const method = "bank_transfer";
@@ -66,12 +67,12 @@ export async function createTransferOrder(userId: string, raw: unknown) {
 }
 export async function changeTransferOrder(userId: string, id: string, action: "report" | "cancel", raw: unknown) {
   const data = action === "report" ? transferReportSchema.parse(raw) : null;
-  return db.$transaction(async (tx) => {
+  const outcome = await db.$transaction(async (tx) => {
     await lockUser(tx, userId);
     const order = await tx.payment.findFirst({ where: { id, userId, method }, select: orderSelect });
     if (!order) throw new ApiError("Không tìm thấy đơn thanh toán.", 404);
-    if (action === "report" && order.status === "pending_review") return order;
-    if (action === "cancel" && order.status === "cancelled") return order;
+    if (action === "report" && order.status === "pending_review") return { order, email: null };
+    if (action === "cancel" && order.status === "cancelled") return { order, email: null };
     if (order.status !== "awaiting_transfer" && !(action === "report" && order.status === "rejected"))
       throw new ApiError("Không thể thay đổi đơn đã gửi đối soát hoặc đã được xử lý.", 409);
     if (order.status === "rejected" && await tx.payment.findFirst({ where: { userId, method, status: { in: openStatuses } }, select: { id: true } }))
@@ -85,9 +86,34 @@ export async function changeTransferOrder(userId: string, id: string, action: "r
         userId: admin.id, type: "payment", title: "Có đơn Premium chờ đối soát",
         body: `${order.providerId} · ${order.amount.toLocaleString("vi-VN")} VND. Hãy kiểm tra tiền thực nhận trước khi duyệt.`, href: "/admin/subscriptions",
       })) });
+      const learner = await tx.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+      return {
+        order: result,
+        email: learner
+          ? {
+              orderId: order.id,
+              providerId: order.providerId,
+              amount: order.amount,
+              learnerName: learner.name,
+              learnerEmail: learner.email,
+              reportedAt: result.reportedAt || new Date(),
+            }
+          : null,
+      };
     }
-    return result;
+    return { order: result, email: null };
   });
+  if (outcome.email) {
+    try {
+      await sendBillingReviewEmail(outcome.email);
+    } catch (error) {
+      console.error(
+        "Không gửi được email đơn Premium chờ đối soát:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+  return outcome.order;
 }
 export async function attachTransferReceipt(userId: string, id: string, image: { data: Uint8Array<ArrayBuffer>; contentType: string }) {
   return db.$transaction(async (tx) => {
