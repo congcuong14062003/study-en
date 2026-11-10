@@ -29,7 +29,7 @@ export function AuthForm({
     [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
     [show, setShow] = useState(false),
-    [config, setConfig] = useState({ google: false, facebook: false });
+    [config, setConfig] = useState({ google: false });
   const register = mode === "register",
     login = mode === "login";
   const redirectError =
@@ -202,7 +202,7 @@ export function AuthForm({
               {redirectError}
             </p>
           )}
-          {(login || register) && (config.google || config.facebook) && (
+          {(login || register) && config.google && (
             <>
               <div className="oauth-buttons">
                 {config.google && (
@@ -213,16 +213,6 @@ export function AuthForm({
                     }
                   >
                     Tiếp tục với Google
-                  </Button>
-                )}
-                {config.facebook && (
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      signIn("facebook", { callbackUrl: "/dashboard" })
-                    }
-                  >
-                    Tiếp tục với Facebook
                   </Button>
                 )}
               </div>

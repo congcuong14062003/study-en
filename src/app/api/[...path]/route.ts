@@ -78,7 +78,6 @@ export async function GET(request: Request, { params }: Context) {
           ai: isAIConfigured(),
           email: Boolean(process.env.SMTP_HOST),
           google: Boolean(process.env.GOOGLE_CLIENT_ID),
-          facebook: Boolean(process.env.FACEBOOK_CLIENT_ID),
         };
         break;
       case "courses": {

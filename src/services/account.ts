@@ -23,6 +23,16 @@ export async function register(request: Request) {
     await rateLimit("register:capacity", 1000, 3600);
     const values = registerSchema.parse(await readJson(request));
     await rateLimit(`register:${values.email}`, 4, 3600);
+    const existingAccount = await db.user.findFirst({
+      where: { email: { equals: values.email, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (existingAccount) {
+      throw new ApiError(
+        "Email này đã có tài khoản. Hãy đăng nhập bằng phương thức bạn đã dùng.",
+        409,
+      );
+    }
     // const passwordHash = await hash(values.password, 12);
     // const user = await db.user.create({
     //   data: {

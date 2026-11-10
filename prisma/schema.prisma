@@ -13,8 +13,7 @@ enum Role {
 model User {
   id String @id @default(cuid())
   name String?
-  // An email may belong to independent password, Google, and Facebook users.
-  // Password users remain unique per email through a partial SQL index.
+  // Sign-in methods for the same email resolve to this single User.
   email String
   emailVerified DateTime?
   emailVerificationRequired Boolean @default(false)
