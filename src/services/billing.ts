@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/security";
 import { lockUser } from "./learning";
 import { billingPeriodSchema, billingSettingsSchema, defaultBillingSettings, paymentReviewSchema, premiumExtension, transferReportSchema, vietQrUrl } from "@/lib/billing";
 import { paginationMeta, readPagination } from "@/lib/pagination";
-import { sendBillingReviewEmail } from "@/lib/billing-email";
+import { sendBillingReviewEmail, sendPremiumActivatedEmail } from "@/lib/billing-email";
 import type { Prisma } from "@prisma/client";
 
 const method = "bank_transfer";
@@ -150,14 +150,14 @@ export async function reviewTransferOrder(adminId: string, id: string, raw: unkn
   const target = await db.payment.findFirst({ where: { id, method }, select: { userId: true } });
   if (!target) throw new ApiError("Không tìm thấy đơn thanh toán.", 404);
   if (target.userId === adminId) throw new ApiError("Không được duyệt đơn của chính mình.", 403);
-  return db.$transaction(async (tx) => {
+  const outcome = await db.$transaction(async (tx) => {
     await lockUser(tx, target.userId);
     const admin = await tx.user.findUnique({ where: { id: adminId } });
     if (admin?.role !== "ADMIN" || admin.banned) throw new ApiError("Bạn không có quyền đối soát.", 403);
     const order = await tx.payment.findUniqueOrThrow({ where: { id } });
     if (order.status === "paid" && decision.decision === "approve") {
       if (order.bankTransactionId !== decision.bankTransactionId) throw new ApiError("Đơn đã được xác nhận bằng mã giao dịch khác.", 409);
-      return tx.payment.findUniqueOrThrow({ where: { id }, select: orderSelect });
+      return { payment: await tx.payment.findUniqueOrThrow({ where: { id }, select: orderSelect }), email: null };
     }
     if (order.status !== "pending_review") throw new ApiError("Chỉ xử lý đơn đang chờ đối soát.", 409);
     if (decision.decision === "approve" && decision.receivedAmount !== order.amount)
@@ -168,7 +168,7 @@ export async function reviewTransferOrder(adminId: string, id: string, raw: unkn
         status: "rejected", reviewedAt: now, reviewedBy: adminId, reviewNote: decision.reviewNote,
       }, select: orderSelect });
       await tx.notification.create({ data: { userId: order.userId, type: "payment", title: "Đơn Premium cần kiểm tra lại", body: `${order.providerId}: ${decision.reviewNote}`, href: "/billing" } });
-      return result;
+      return { payment: result, email: null };
     }
     if (await tx.payment.findUnique({ where: { bankTransactionId: decision.bankTransactionId } }))
       throw new ApiError("Mã giao dịch ngân hàng này đã được dùng cho đơn khác.", 409);
@@ -187,6 +187,26 @@ export async function reviewTransferOrder(adminId: string, id: string, raw: unkn
     }, select: orderSelect });
     await tx.notification.create({ data: { userId: order.userId, type: "payment", title: "Premium đã được kích hoạt!",
       body: `Đã xác nhận thanh toán ${order.providerId}. ${end ? `Gói có hiệu lực đến ${end.toLocaleDateString("vi-VN")}.` : "Gói không giới hạn thời hạn."}`, href: "/billing" } });
-    return result;
+    return {
+      payment: result,
+      email: {
+        providerId: order.providerId,
+        amount: order.amount,
+        learnerName: user.name,
+        learnerEmail: user.email,
+        premiumUntil: end,
+      },
+    };
   });
+  if (outcome.email) {
+    try {
+      await sendPremiumActivatedEmail(outcome.email);
+    } catch (error) {
+      console.error(
+        "Không gửi được email xác nhận Premium cho học viên:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+  return outcome.payment;
 }

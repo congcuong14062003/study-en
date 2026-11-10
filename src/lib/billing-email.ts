@@ -2,14 +2,7 @@ import nodemailer from "nodemailer";
 
 const defaultBillingAdminEmail = "cuongkoi1406@gmail.com";
 
-export async function sendBillingReviewEmail(input: {
-  orderId: string;
-  providerId: string;
-  amount: number;
-  learnerName: string | null;
-  learnerEmail: string;
-  reportedAt: Date;
-}) {
+function createBillingTransport() {
   const { SMTP_HOST, SMTP_FROM } = process.env;
   if (!SMTP_HOST || !SMTP_FROM) {
     throw new Error("SMTP_HOST and SMTP_FROM are required to send billing alerts.");
@@ -27,18 +20,30 @@ export async function sendBillingReviewEmail(input: {
     greetingTimeout: 10_000,
     socketTimeout: 10_000,
   });
+  return { transport, from: SMTP_FROM };
+}
 
-  const adminEmail =
-    process.env.BILLING_ADMIN_EMAIL?.trim() || defaultBillingAdminEmail;
+function appUrl(path: string) {
   const baseUrl =
     process.env.NEXTAUTH_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
-  const reviewUrl = baseUrl
-    ? `${baseUrl.replace(/\/$/, "")}/admin/subscriptions`
-    : "/admin/subscriptions";
+  return baseUrl ? `${baseUrl.replace(/\/$/, "")}${path}` : path;
+}
+
+export async function sendBillingReviewEmail(input: {
+  orderId: string;
+  providerId: string;
+  amount: number;
+  learnerName: string | null;
+  learnerEmail: string;
+  reportedAt: Date;
+}) {
+  const { transport, from } = createBillingTransport();
+  const adminEmail =
+    process.env.BILLING_ADMIN_EMAIL?.trim() || defaultBillingAdminEmail;
 
   await transport.sendMail({
-    from: SMTP_FROM,
+    from,
     to: adminEmail,
     subject: `EnglishMaster: đơn Premium chờ duyệt ${input.providerId}`,
     text: [
@@ -47,9 +52,37 @@ export async function sendBillingReviewEmail(input: {
       `Số tiền: ${input.amount.toLocaleString("vi-VN")} VND`,
       `Học viên: ${input.learnerName || "Chưa có tên"} (${input.learnerEmail})`,
       `Thời gian báo: ${input.reportedAt.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}`,
-      `Mở trang đối soát: ${reviewUrl}`,
+      `Mở trang đối soát: ${appUrl("/admin/subscriptions")}`,
       `Mã đơn nội bộ: ${input.orderId}`,
       "Hãy kiểm tra tiền thực nhận trong tài khoản ngân hàng trước khi duyệt. Email này không xác nhận giao dịch đã thành công.",
     ].join("\n"),
+  });
+}
+
+export async function sendPremiumActivatedEmail(input: {
+  providerId: string;
+  amount: number;
+  learnerName: string | null;
+  learnerEmail: string;
+  premiumUntil: Date | null;
+}) {
+  const { transport, from } = createBillingTransport();
+  const validity = input.premiumUntil
+    ? `Gói có hiệu lực đến ${input.premiumUntil.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}.`
+    : "Gói Premium không giới hạn thời hạn.";
+
+  await transport.sendMail({
+    from,
+    to: input.learnerEmail,
+    subject: `EnglishMaster: Premium đã được kích hoạt · ${input.providerId}`,
+    text: [
+      `Xin chào ${input.learnerName || "bạn"},`,
+      "Khoản thanh toán Premium của bạn đã được xác nhận.",
+      `Mã đơn: ${input.providerId}`,
+      `Số tiền: ${input.amount.toLocaleString("vi-VN")} VND`,
+      validity,
+      `Vào trang gói học: ${appUrl("/billing")}`,
+      "Cảm ơn bạn đã đồng hành cùng EnglishMaster.",
+    ].join("\n\n"),
   });
 }
