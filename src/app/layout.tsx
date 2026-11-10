@@ -11,6 +11,7 @@ import "@fontsource/plus-jakarta-sans/latin-700.css";
 import "@fontsource/plus-jakarta-sans/latin-800.css";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || "http://localhost:3000"),
   title: {
@@ -39,6 +40,7 @@ export default function RootLayout({
           Đi đến nội dung
         </a>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
