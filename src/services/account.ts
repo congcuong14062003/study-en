@@ -16,6 +16,7 @@ import {
   createVerificationCode,
   hashVerificationCode,
 } from "@/lib/email-verification";
+import { sendVerificationEmail } from "@/services/email-verification";
 export async function register(request: Request) {
   try {
     checkOrigin(request);
@@ -89,26 +90,7 @@ export async function register(request: Request) {
     // Send verification email
     let emailSent = true;
     try {
-      const transport = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_PORT === "465",
-        auth: process.env.SMTP_USER
-          ? {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASSWORD,
-            }
-          : undefined,
-      });
-
-      // console.log("Sending verification email to:", user.email);
-      // console.log("Verification code:", code);
-      await transport.sendMail({
-        from: process.env.SMTP_FROM,
-        to: user.email,
-        subject: "Mã xác thực EnglishMaster",
-        text: `Mã xác thực của bạn là ${code}. Mã có hiệu lực trong 10 phút. Nếu không đăng ký tài khoản, hãy bỏ qua email này.`,
-      });
+      await sendVerificationEmail(user.email, code);
     } catch (error) {
       emailSent = false;
       await db.emailVerificationCode.updateMany({

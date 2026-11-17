@@ -5,6 +5,7 @@ import {
   createVerificationCode,
   hashVerificationCode,
 } from "@/lib/email-verification";
+import { verificationEmailContent } from "@/lib/verification-email-template";
 import {
   ApiError,
   checkOrigin,
@@ -38,8 +39,7 @@ export async function sendVerificationEmail(email: string, code: string) {
   await transport.sendMail({
     from: process.env.SMTP_FROM,
     to: email,
-    subject: "Mã xác thực EnglishMaster",
-    text: `Mã xác thực của bạn là ${code}. Mã có hiệu lực trong 10 phút. Nếu không đăng ký tài khoản, hãy bỏ qua email này.`,
+    ...verificationEmailContent(code),
   });
 }
 
