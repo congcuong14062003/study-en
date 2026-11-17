@@ -19,6 +19,7 @@ model User {
   emailVerificationRequired Boolean @default(false)
   emailVerificationCode     EmailVerificationCode?
   image String?
+  avatar UserAvatar?
   passwordHash String?
   role Role @default(USER)
   banned Boolean @default(false)
@@ -49,6 +50,13 @@ model User {
   writingSubmissions WritingSubmission[]
 
   @@index([email])
+}
+model UserAvatar {
+  userId String @id
+  contentType String
+  data Bytes
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 model EmailVerificationCode {
   id        String   @id @default(cuid())

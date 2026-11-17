@@ -238,6 +238,7 @@ export default async function Page({ params, searchParams }: Props) {
           ? {
               id: user.id,
               name: user.name,
+              image: user.image,
               email: user.email,
               role: user.role,
               targetLanguage: user.profile?.targetLanguage || "en",

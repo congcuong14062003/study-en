@@ -46,6 +46,7 @@ import {
 export type ShellUser = {
   id: string;
   name: string | null;
+  image?: string | null;
   email: string;
   role: string;
   premiumActive?: boolean;
@@ -174,7 +175,7 @@ export function AppShell({
         </div>
         <div className="sidebar-user">
           <Link href={user ? "/profile" : "/login"} className="avatar">
-            {initials(user?.name)}
+            {user?.image ? <img src={user.image} alt="" /> : initials(user?.name)}
           </Link>
           <div>
             <strong>{user?.name || "Khách tham quan"}</strong>
@@ -243,7 +244,7 @@ export function AppShell({
               className="avatar"
               aria-label="Hồ sơ cá nhân"
             >
-              {initials(user?.name)}
+              {user?.image ? <img src={user.image} alt="" /> : initials(user?.name)}
             </Link>
           </div>
         </header>

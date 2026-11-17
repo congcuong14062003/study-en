@@ -25,6 +25,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeading, StatCard } from "@/components/dashboard/dashboard";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/states";
+import { AvatarEditor } from "@/components/account/avatar-editor";
 import type { DashboardData } from "@/services/dashboard";
 export function ProfileSettings({ settings = false }: { settings?: boolean }) {
   const { data, loading, error, refresh } =
@@ -75,7 +76,7 @@ export function ProfileSettings({ settings = false }: { settings?: boolean }) {
           </Button>
         </PageHeading>
         <Card className="profile-hero">
-          <div className="profile-avatar">{initials(u.name)}</div>
+          <div className="profile-avatar">{u.image ? <img src={u.image} alt="Ảnh đại diện" /> : initials(u.name)}</div>
           <div>
             <Badge>
               CEFR tiếng Anh: {u.profile?.level || "A1"} · {u.subscription?.plan || "FREE"}
@@ -186,6 +187,10 @@ export function ProfileSettings({ settings = false }: { settings?: boolean }) {
       <form onSubmit={save}>
         <Card className="section-card">
           <h2>Hồ sơ cá nhân</h2>
+          <div className="field">
+            <span className="field-label">Ảnh đại diện</span>
+            <AvatarEditor userId={u.id} name={u.name} image={u.image} onSaved={refresh} />
+          </div>
           <div className="form-row">
             <div className="field">
               <label htmlFor="profile-name">Họ và tên</label>

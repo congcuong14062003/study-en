@@ -429,6 +429,7 @@ export function ProgressPages({
 type RankedUser = {
   id: string;
   name: string;
+  image?: string | null;
   level: string;
   xp: number;
   country: string;
@@ -478,7 +479,7 @@ export function Leaderboard({ userId }: { userId: string }) {
               <span className={`rank rank-${i + 1}`}>
                 {i < 3 ? <Trophy size={23} /> : i + 1}
               </span>
-              <span className="avatar">{initials(u.name)}</span>
+              <span className="avatar">{u.image ? <img src={u.image} alt="" /> : initials(u.name)}</span>
               <div>
                 <h3>
                   {u.name}
