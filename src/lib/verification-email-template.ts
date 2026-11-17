@@ -15,7 +15,7 @@ export function verificationEmailContent(code: string) {
     .join("");
 
   return {
-    subject: `Mã xác thực tài khoản ${BRAND}`,
+    subject: `${code} là mã xác thực ${BRAND} của bạn`,
     text: `Mã xác thực ${BRAND} của bạn là ${code}. Mã có hiệu lực trong 10 phút. Mở ${verificationUrl} để nhập mã. Nếu bạn không đăng ký tài khoản, hãy bỏ qua email này.`,
     html: `<!doctype html>
 <html lang="vi">
