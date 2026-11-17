@@ -9,7 +9,7 @@ import { Button } from "./ui/button";
 import { formatNumber } from "@/lib/utils";
 import { useData } from "@/hooks/use-data";
 import type { BillingSettings } from "@/lib/billing";
-export function Pricing() {
+export function Pricing({ salesOpen }: { salesOpen: boolean }) {
   const [yearly, setYearly] = useState(false);
   const { data: config } = useData<BillingSettings>("/billing/config");
   return (
@@ -19,8 +19,8 @@ export function Pricing() {
         <div className="section-heading centered">
           <span className="eyebrow">ĐẦU TƯ NHỎ, CƠ HỘI LỚN</span>
           <h1>Chọn nhịp học phù hợp với bạn.</h1>
-          <p>Bắt đầu miễn phí. Nâng cấp khi bạn muốn đi xa hơn.</p>
-          <div className="pricing-switch">
+          <p>{salesOpen ? "Bắt đầu miễn phí. Nâng cấp khi bạn muốn đi xa hơn." : "Bắt đầu học miễn phí ngay hôm nay."}</p>
+          {salesOpen && <div className="pricing-switch">
             <button
               className={!yearly ? "active" : ""}
               onClick={() => setYearly(false)}
@@ -33,7 +33,7 @@ export function Pricing() {
             >
               Hằng năm
             </button>
-          </div>
+          </div>}
         </div>
         <div className="pricing-grid">
           <Card className="pricing-card">
@@ -65,7 +65,7 @@ export function Pricing() {
               ))}
             </ul>
           </Card>
-          <Card className="pricing-card premium">
+          {salesOpen && <Card className="pricing-card premium">
             <Badge className="premium-ribbon">CHO HÀNH TRÌNH XA HƠN</Badge>
             <span className="icon-box purple">
               <Crown />
@@ -100,7 +100,7 @@ export function Pricing() {
               Cần đăng nhập để tạo đơn. Quét QR, chuyển đúng số tiền và mã đơn;
               Premium mở sau khi admin đối soát tiền thực nhận.
             </p>
-          </Card>
+          </Card>}
         </div>
         <div className="pricing-note">
           <Check size={17} />

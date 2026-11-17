@@ -55,9 +55,11 @@ export type ShellUser = {
 export function AppShell({
   children,
   user,
+  premiumSalesOpen,
 }: {
   children: React.ReactNode;
   user: ShellUser | null;
+  premiumSalesOpen: boolean;
 }) {
   const pathname = usePathname();
   const [search, setSearch] = useState(false);
@@ -157,7 +159,7 @@ export function AppShell({
                   [{ href: "/admin", label: "Quản trị", icon: Shield }],
                   "Quản trị",
                 )}
-              <div className="sidebar-upgrade">
+              {premiumSalesOpen && <div className="sidebar-upgrade">
                 <Crown size={24} />
                 <h4>Mở khóa tiềm năng của bạn</h4>
                 <p>Học sâu hơn cùng EnglishMaster Premium.</p>
@@ -166,7 +168,7 @@ export function AppShell({
                     Khám phá Premium <ArrowUpRight size={13} />
                   </Link>
                 </Button>
-              </div>
+              </div>}
             </>
           )}
         </div>

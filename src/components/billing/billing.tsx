@@ -125,8 +125,8 @@ export function BillingPage() {
   const lifetime = premium && !sub.currentPeriodEnd;
   return <>
     <PageHeading title="Gói học & thanh toán" description="Chuyển khoản ngân hàng, đối soát bởi quản trị viên."><Button variant="outline" onClick={() => { account.refresh(); config.refresh(); router.refresh(); }}><RefreshCw size={16} /> Cập nhật trạng thái</Button></PageHeading>
-    <Card className="section-card payment-summary"><ShieldCheck /><div><h2>{premium ? "Premium đang hoạt động" : "Bạn đang dùng gói Free"}</h2><p>{premium ? sub.currentPeriodEnd ? `Có hiệu lực đến ${billingDate(sub.currentPeriodEnd)}. Gia hạn sẽ cộng tiếp thời gian còn lại.` : "Premium không giới hạn thời hạn." : "Gói Premium mở sau khi admin xác nhận đã nhận đủ tiền."}</p></div></Card>
-    {!active && !lifetime && <Card className="section-card">
+    <Card className="section-card payment-summary"><ShieldCheck /><div><h2>{premium ? "Premium đang hoạt động" : "Bạn đang dùng gói Free"}</h2><p>{premium ? sub.currentPeriodEnd ? `Có hiệu lực đến ${billingDate(sub.currentPeriodEnd)}.` : "Premium không giới hạn thời hạn." : config.data.enabled ? "Gói Premium mở sau khi admin xác nhận đã nhận đủ tiền." : "Đăng ký Premium hiện tạm dừng."}</p></div></Card>
+    {!active && !lifetime && config.data.enabled && <Card className="section-card">
       <h2>Đăng ký Premium</h2>
       {config.data.enabled ? <div className="payment-actions">
         <Button disabled={busy} onClick={() => void create("monthly")}><CreditCard size={17} /> 1 tháng · {formatNumber(config.data!.monthlyAmount)}₫</Button>

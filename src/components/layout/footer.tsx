@@ -17,7 +17,7 @@ export function Footer() {
           <h4>Khám phá</h4>
           <Link href="/courses">Khóa học</Link>
           <Link href="/study-plan">Lộ trình học</Link>
-          <Link href="/pricing">EnglishMaster Premium</Link>
+          <Link href="/pricing">Bảng giá</Link>
           <Link href="/blog">Góc học tập</Link>
         </div>
         <div>

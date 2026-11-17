@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { premiumSalesOpen } from "@/lib/premium-sales";
 import { db } from "@/lib/db";
 import { ApiError } from "@/lib/security";
 import { lockUser } from "./learning";
@@ -22,7 +23,8 @@ const settingsSelect = {
 } satisfies Prisma.BankTransferSettingsSelect;
 
 export async function readBillingSettings() {
-  return await db.bankTransferSettings.findUnique({ where: { id: "bank-transfer" }, select: settingsSelect }) || defaultBillingSettings;
+  const settings = await db.bankTransferSettings.findUnique({ where: { id: "bank-transfer" }, select: settingsSelect }) || defaultBillingSettings;
+  return premiumSalesOpen() ? settings : { ...settings, enabled: false };
 }
 export async function saveBillingSettings(adminId: string, raw: unknown) {
   const data = billingSettingsSchema.parse(raw);
@@ -39,6 +41,7 @@ export async function billingAccount(userId: string) {
   return { orders, subscription };
 }
 export async function createTransferOrder(userId: string, raw: unknown) {
+  if (!premiumSalesOpen()) throw new ApiError("Đăng ký Premium đang tạm dừng.", 409);
   const period = billingPeriodSchema.parse(raw);
   return db.$transaction(async (tx) => {
     await lockUser(tx, userId);

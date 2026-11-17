@@ -22,6 +22,7 @@ import {
 import { ProfileSettings } from "@/components/account/profile-settings";
 import { LoadingSkeleton } from "@/components/ui/states";
 import { learningLanguage } from "@/lib/languages";
+import { premiumSalesOpen } from "@/lib/premium-sales";
 const ExamHub = nextDynamic(
   () => import("@/components/exams/exam-hub").then((m) => m.ExamHub),
   { loading: () => <LoadingSkeleton /> },
@@ -230,6 +231,7 @@ export default async function Page({ params, searchParams }: Props) {
   }
   return (
     <AppShell
+      premiumSalesOpen={premiumSalesOpen()}
       key={`${user?.id || "guest"}:${user?.profile?.targetLanguage || "en"}`}
       user={
         user
